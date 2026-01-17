@@ -1,8 +1,10 @@
 from pypdf import PdfReader
 import docx
+import asyncio
+from functools import partial
 
 
-def extract_text_from_pdf(file_path: str) -> str:
+def _extract_pdf_sync(file_path: str) -> str:
     try:
         reader = PdfReader(file_path)
         text = ""
@@ -14,7 +16,7 @@ def extract_text_from_pdf(file_path: str) -> str:
         return ""
 
 
-def extract_text_from_docx(file_path: str) -> str:
+def _extract_docx_sync(file_path: str) -> str:
     try:
         doc = docx.Document(file_path)
         return "\n".join([para.text for para in doc.paragraphs])
@@ -23,9 +25,10 @@ def extract_text_from_docx(file_path: str) -> str:
         return ""
 
 
-def extract_text(file_path: str, content_type: str) -> str:
+async def extract_text(file_path: str, content_type: str) -> str:
+    loop = asyncio.get_event_loop()
     if "pdf" in content_type:
-        return extract_text_from_pdf(file_path)
+        return await loop.run_in_executor(None, partial(_extract_pdf_sync, file_path))
     elif "word" in content_type or "docx" in content_type:
-        return extract_text_from_docx(file_path)
+        return await loop.run_in_executor(None, partial(_extract_docx_sync, file_path))
     return ""

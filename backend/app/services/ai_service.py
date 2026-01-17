@@ -1,6 +1,7 @@
 import google.generativeai as genai
 from app.core.config import settings
 import json
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 genai.configure(api_key=settings.GEMINI_API_KEY)
 
@@ -9,6 +10,7 @@ class AI_Service:
     def __init__(self):
         self.model = genai.GenerativeModel('gemini-pro')
 
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     async def parse_resume(self, text: str) -> dict:
         prompt = f"""
         You are an expert Resume Parser. 
@@ -27,11 +29,17 @@ class AI_Service:
         Resume Text:
         {text[:10000]}
         """
-        response = self.model.generate_content(prompt)
-        clean_text = response.text.replace('```json', '').replace('```', '')
+        response = await self.model.generate_content_async(prompt)
+        return self._clean_and_parse_json(response.text)
+
+    def _clean_and_parse_json(self, text: str) -> dict:
+        # Improve cleaning logic to handle common LLM markdown wrappers
+        clean_text = text.replace('```json', '').replace('```', '').strip()
         try:
             return json.loads(clean_text)
-        except:
+        except json.JSONDecodeError:
+            # Fallback or simple repair could go here
+            print(f"JSON Parse Error. Raw text: {text[:100]}")
             return {"raw_text": text, "error": "Failed to parse JSON"}
 
     async def generate_tailored_resume(self, resume_json: dict, job_description: str, job_role: str) -> dict:
@@ -77,12 +85,8 @@ class AI_Service:
         }}
         Do NOT wrap in markdown.
         """
-        response = self.model.generate_content(prompt)
-        clean_text = response.text.replace('```json', '').replace('```', '')
-        try:
-            return json.loads(clean_text)
-        except:
-            return {"error": "Failed to generate JSON", "raw": response.text}
+        response = await self.model.generate_content_async(prompt)
+        return self._clean_and_parse_json(response.text)
 
     async def calculate_ats_score(self, resume_text: str, job_description: str) -> dict:
         prompt = f"""
@@ -116,12 +120,8 @@ class AI_Service:
         }}
         Do NOT wrap in markdown.
         """
-        response = self.model.generate_content(prompt)
-        clean_text = response.text.replace('```json', '').replace('```', '')
-        try:
-            return json.loads(clean_text)
-        except:
-            return {"score": 0, "error": "Parsing failed"}
+        response = await self.model.generate_content_async(prompt)
+        return self._clean_and_parse_json(response.text)
 
 
 ai_service = AI_Service()

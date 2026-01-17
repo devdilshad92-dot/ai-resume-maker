@@ -1,9 +1,12 @@
+from app.core.db import SessionLocal
+import aiofiles
 import shutil
 import os
-from typing import Any, List
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, BackgroundTasks, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
+import json
 
 from app.api import deps
 from app.core.db import get_db
@@ -29,11 +32,12 @@ async def upload_resume(
     Upload a resume file (PDF/DOCX), parse it, and save to DB.
     """
     file_location = f"{UPLOAD_DIR}/{current_user.id}_{file.filename}"
-    with open(file_location, "wb+") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    async with aiofiles.open(file_location, "wb+") as buffer:
+        while content := await file.read(1024):  # Chuck wise read
+            await buffer.write(content)
 
-    # Extract Text
-    text_content = extract_text(file_location, file.content_type or "")
+    # Extract Text (Non-blocking)
+    text_content = await extract_text(file_location, file.content_type or "")
     if not text_content:
         raise HTTPException(
             status_code=400, detail="Could not extract text from file")
@@ -77,60 +81,91 @@ async def submit_job_description(
     return job
 
 
-async def process_resume_generation(app_id: int, resume_id: int, job_id: int, db: AsyncSession):
-    # Re-fetch objects within the task session if needed, or pass data.
-    # ideally we use a new session here.
-    # For simplicity of this artifact, we assume the session is handled or we use a fresh one.
-    # In async fastapi background tasks with asyncpg, we need a new session context usually.
-    pass
-    # Logic moved to the endpoint for synchronous waiting or strictly designed async wrapper
-    # But user asked for "Celery or BackgroundTasks".
-    # To ensure reliability in this generated code without a complex worker setup,
-    # I will do it "await" in the endpoint for the MVP functionality,
-    # OR implement a simple runner.
+async def background_generate_resume(app_id: int):
+    """
+    Background worker for resume generation.
+    Creates its own DB session to avoid detached instances or concurrency issues.
+    """
+    async with SessionLocal() as db:
+        try:
+            # Re-fetch application with relationships
+            result = await db.execute(
+                select(Application)
+                .where(Application.id == app_id)
+                .options(selectinload(Application.resume), selectinload(Application.job))
+            )
+            application = result.scalars().first()
+
+            if not application:
+                print(f"Application {app_id} not found in worker")
+                return
+
+            # AI Logic
+            generated_resume = await ai_service.generate_tailored_resume(
+                application.resume.parsed_content,
+                application.job.text_content,
+                application.job.position
+            )
+
+            ats_result = await ai_service.calculate_ats_score(
+                str(generated_resume),
+                application.job.text_content
+            )
+
+            # Update DB
+            application.generated_content = json.dumps(generated_resume)
+            application.ats_score = ats_result.get('score', 0)
+            application.ats_feedback = ats_result
+            application.status = "completed"
+
+            db.add(application)
+            await db.commit()
+
+        except Exception as e:
+            print(f"Error in background generation: {e}")
+            application.status = "failed"
+            db.add(application)
+            await db.commit()
 
 
-@router.post("/generate", response_model=ApplicationResponse)
+@router.post("/generate", response_model=ApplicationResponse, status_code=202)
 async def generate_tailored_resume(
     *,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(deps.get_current_user),
     resume_id: int = Form(...),
-    job_id: int = Form(...)
+    job_id: int = Form(...),
+    background_tasks: BackgroundTasks
 ) -> Any:
     """
-    Generate a tailored resume and ATS score.
+    Start background job to generate resume. Returns HTTP 202 Accepted.
+    Poll /application/{id} for result.
     """
-    # Fetch Resume
-    res_q = await db.execute(select(Resume).where(Resume.id == resume_id, Resume.user_id == current_user.id))
-    resume = res_q.scalars().first()
-
-    # Fetch Job
-    job_q = await db.execute(select(JobDescription).where(JobDescription.id == job_id, JobDescription.user_id == current_user.id))
-    job = job_q.scalars().first()
-
-    if not resume or not job:
-        raise HTTPException(status_code=404, detail="Resume or Job not found")
-
-    # Call AI Service
-    # 1. Generate Tailored Content
-    generated_resume = await ai_service.generate_tailored_resume(resume.parsed_content, job.text_content, job.position)
-
-    # 2. Calculate ATS Score (on the NEW content or Old? Usually new tailored one vs JD)
-    # Let's stringify the new resume for scoring
-    ats_result = await ai_service.calculate_ats_score(str(generated_resume), job.text_content)
-
+    # Create Application Record first
     application = Application(
         user_id=current_user.id,
-        resume_id=resume.id,
-        job_id=job.id,
-        # Storing as stringified JSON for now
-        generated_content=str(generated_resume),
-        ats_score=ats_result.get('score', 0),
-        ats_feedback=ats_result,
-        status="completed"
+        resume_id=resume_id,
+        job_id=job_id,
+        status="processing"
     )
     db.add(application)
     await db.commit()
     await db.refresh(application)
+
+    # Enqueue Task
+    background_tasks.add_task(background_generate_resume, application.id)
+
+    return application
+
+
+@router.get("/application/{app_id}", response_model=ApplicationResponse)
+async def get_application(
+    app_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user)
+) -> Any:
+    result = await db.execute(select(Application).where(Application.id == app_id, Application.user_id == current_user.id))
+    application = result.scalars().first()
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
     return application

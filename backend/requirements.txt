@@ -16,3 +16,5 @@ httpx
 python-dotenv
 alembic
 psycopg2-binary
+aiofiles
+tenacity

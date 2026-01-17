@@ -61,13 +61,46 @@ const ResumeBuilder = () => {
             formData.append('resume_id', resumeData.id);
             formData.append('job_id', jobData.id);
             
+            // 1. Kick off generation
             const res = await api.post('/resume/generate', formData);
-            setResult(res.data);
-            setLoading(false);
-            setStep(4);
+            const appId = res.data.id;
+            
+            // 2. Poll for status
+            const pollInterval = setInterval(async () => {
+                try {
+                    const appRes = await api.get(`/resume/application/${appId}`);
+                    const appData = appRes.data;
+                    
+                    if (appData.status === 'completed') {
+                        clearInterval(pollInterval);
+                        
+                        // Parse JSON content if it's a string
+                        if (typeof appData.generated_content === 'string') {
+                            try {
+                                appData.generated_content = JSON.parse(appData.generated_content);
+                            } catch (e) {
+                                console.error("JSON Parse error", e);
+                            }
+                        }
+                        
+                        setResult(appData);
+                        setLoading(false);
+                        setStep(4);
+                    } else if (appData.status === 'failed') {
+                        clearInterval(pollInterval);
+                        setLoading(false);
+                        alert("Resume generation failed. Please try again.");
+                    }
+                } catch (err) {
+                    // Ignore transient errors
+                    console.error("Polling error", err);
+                }
+            }, 2000); // Check every 2 seconds
+            
         } catch (err) {
             setLoading(false);
-            alert("Generation failed");
+            console.error(err);
+            alert("Generation failed to start");
         }
     };
 
