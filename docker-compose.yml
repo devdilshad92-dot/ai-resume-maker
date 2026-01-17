@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=resume_maker
+    ports:
+      - '5432:5432'
+    volumes: 
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/resume_maker
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - SECRET_KEY=YOUR_SUPER_SECRET_KEY_CHANGE_IN_PROD
+    depends_on:
+      - db
+    volumes:
+      - ./backend/app:/app/app
+
+  frontend:
+    image: node:18-alpine
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    command: sh -c "npm install && npm run dev -- --host"
+    ports:
+      - "5173:5173"
+
+volumes:
+  postgres_data:
