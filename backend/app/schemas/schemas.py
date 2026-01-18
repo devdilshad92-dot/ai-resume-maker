@@ -54,19 +54,50 @@ class JobDescriptionResponse(JobDescriptionCreate):
     class Config:
         from_attributes = True
 
-# Resume Schema
+# Template Schemas
 
 
-class ResumeBase(BaseModel):
-    raw_text: Optional[str] = None
+class TemplateResponse(BaseModel):
+    id: str
+    name: str
+    description: str
+    category: str  # Fresher, Experienced, Tech, etc.
+    preview_url: Optional[str] = None
+
+# Resume Section Schemas
 
 
-class ResumeResponse(ResumeBase):
+class ResumeSection(BaseModel):
+    summary: Optional[str] = None
+    skills: Optional[List[str]] = []
+    work_experience: Optional[List[Dict[str, Any]]] = []
+    education: Optional[List[Dict[str, Any]]] = []
+    projects: Optional[List[Dict[str, Any]]] = []
+
+
+class ResumeCreateScratch(BaseModel):
+    job_role: str
+    experience_level: str  # Fresher, Junior, Mid, Senior, Lead
+    industry: str
+    template_id: Optional[str] = "minimal-pro"
+
+
+class ResumeUpdateSection(BaseModel):
+    section_name: str  # summary, skills, work_experience, etc.
+    content: Any
+
+
+class ResumeResponse(BaseModel):
     id: int
     user_id: int
     parsed_content: Optional[Dict[str, Any]] = None
     file_path: Optional[str] = None
+    template_id: str
+    is_draft: bool
+    version: int
+    meta_data: Optional[Dict[str, Any]] = None
     created_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -77,6 +108,7 @@ class ResumeResponse(ResumeBase):
 class ApplicationCreate(BaseModel):
     resume_id: int
     job_id: int
+    template_id: Optional[str] = "modern-ats"
 
 
 class ApplicationResponse(BaseModel):
@@ -85,7 +117,24 @@ class ApplicationResponse(BaseModel):
     generated_content: Optional[Dict[str, Any]] = None  # JSON Resume
     ats_score: Optional[int] = None
     ats_feedback: Optional[Dict[str, Any]] = None
+    template_id: str
     created_at: datetime
 
     class Config:
         from_attributes = True
+
+# AI Assistant Schemas
+
+
+class SectionAISuggestionRequest(BaseModel):
+    section_name: str
+    current_content: Optional[Any] = None
+    job_role: str
+    experience_level: str
+    industry: str
+
+
+class SectionAISuggestionResponse(BaseModel):
+    suggestions: List[str]
+    tips: List[str]
+    improved_content: Optional[Any] = None

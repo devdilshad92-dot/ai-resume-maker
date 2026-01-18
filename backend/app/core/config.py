@@ -22,10 +22,13 @@ class Settings(BaseSettings):
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
     # AI
-    GEMINI_API_KEY: str
+    AI_PROVIDER: str = "ollama"  # or "gemini"
+    GEMINI_API_KEY: str = ""
+    OLLAMA_HOST: str = "http://host.docker.internal:11434"
+    AI_MODEL: str = "llama3"
 
     # Redis
-    REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_URL: str = "redis://redis:6379/0"
 
     # CORS
     BACKEND_CORS_ORIGINS: list[str] = [

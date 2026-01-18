@@ -25,10 +25,17 @@ class Resume(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     file_path = Column(String, nullable=True)
-    # Using JSON to store structured resume data
-    parsed_content = Column(JSON, nullable=True)
+    parsed_content = Column(JSON, nullable=True)  # Structured data
     raw_text = Column(Text, nullable=True)
+
+    # New Fields
+    template_id = Column(String, default="minimal-pro")
+    is_draft = Column(Boolean, default=True)
+    version = Column(Integer, default=1)
+    meta_data = Column(JSON, nullable=True)  # {job_role, industry, level}
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     owner = relationship("User", back_populates="resumes")
     applications = relationship("Application", back_populates="resume")
@@ -56,12 +63,14 @@ class Application(Base):
     resume_id = Column(Integer, ForeignKey("resumes.id"))
     job_id = Column(Integer, ForeignKey("job_descriptions.id"))
 
-    # The AI rewritten resume content (Markdown/JSON)
-    generated_content = Column(Text)
+    # The AI rewritten resume content
+    generated_content = Column(JSON)  # Structured content for templates
     ats_score = Column(Integer)
-    ats_feedback = Column(JSON)  # Structured feedback
+    ats_feedback = Column(JSON)
 
-    status = Column(String, default="pending")  # pending, completed, failed
+    template_id = Column(String, default="modern-ats")
+
+    status = Column(String, default="pending")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     owner = relationship("User", back_populates="applications")
