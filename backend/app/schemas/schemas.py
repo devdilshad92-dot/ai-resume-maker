@@ -138,3 +138,17 @@ class SectionAISuggestionResponse(BaseModel):
     suggestions: List[str]
     tips: List[str]
     improved_content: Optional[Any] = None
+
+
+# Job Role Schemas
+class JobRoleBase(BaseModel):
+    name: str
+    category: Optional[str] = None
+    popularity: Optional[int] = 0
+
+
+class JobRoleResponse(JobRoleBase):
+    id: int
+
+    class Config:
+        from_attributes = True

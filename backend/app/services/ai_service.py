@@ -1,3 +1,4 @@
+from typing import Any
 import google.generativeai as genai
 import ollama
 from app.core.config import settings
@@ -95,24 +96,34 @@ class AI_Service:
         response_text = await self._generate_content(prompt)
         return self._clean_and_parse_json(response_text)
 
-    async def generate_tailored_resume(self, resume_json: dict, job_description: str, job_role: str) -> dict:
+    async def generate_tailored_resume(self, resume_json: dict, job_description: str, job_role: str, template_id: str = "minimal-pro") -> dict:
         resume_str = json.dumps(resume_json)
+
+        # Adjust density/tone based on template
+        density_instruction = "Concise and impact-focused"
+        if template_id == 'leadership-edge':
+            density_instruction = "Achievement-focused, executive tone, emphasis on ROI and leadership."
+        elif template_id == 'tech-focused':
+            density_instruction = "Densely packed with technical stack details, specific tools, and architectural impact."
+        elif template_id == 'academic':
+            density_instruction = "Detailed, formal, focusing on publications and research methodology."
+
         prompt = f"""
-        You are a Principal Software Architect and Lead Recruiter. 
-        Rewrite the candidate's professional profile to be highly targeted for the specific Job Description.
+        You are an Elite Career Consultant. 
+        Rewrite the candidate's profile for the Role: {job_role}.
+        Target Style: {template_id} ({density_instruction})
         
-        Target Role: {job_role}
         Job Description: {job_description}
         Candidate Profile: {resume_str}
         
-        CRITICAL RULES:
-        1. SUMMARY: Write a pitch that connects the candidate's top achievements directly to the JD requirements.
-        2. EXPERIENCE: Use the STAR method. Ensure every bullet point starts with a powerful action verb.
-        3. SKILLS: Cluster skills logically (e.g., Languages, Frameworks, Cloud, Tools).
-        4. QUANTIFY: Use metrics (%, $, time saved, users reached) wherever possible.
-        5. DO NOT invent facts. Only optimize the presentation of existing facts.
+        RULES:
+        1. SUMMARY: Connect achievements directly to the JD. Tone: {density_instruction}.
+        2. EXPERIENCE: Use STAR method. Action verbs only.
+        3. SKILLS: Logical clustering.
+        4. QUANTIFY: Use metrics (%, $, time) everywhere possible.
+        5. DENSITY: Follow the instruction: {density_instruction}.
         
-        OUTPUT FORMAT: Valid JSON only.
+        OUTPUT FORMAT: JSON.
         Structure:
         {{
             "full_name": "...",
@@ -151,6 +162,23 @@ class AI_Service:
         """
         response_text = await self._generate_content(prompt)
         return self._clean_and_parse_json(response_text)
+
+    async def suggest_job_roles(self, query: str) -> List[str]:
+        prompt = f"""
+        Act as a Professional Career Advisor. 
+        The user is typing a job role: '{query}'.
+        Suggest 5 common, real-world job role titles that start with or are highly related to this query.
+        Return ONLY a JSON list of strings.
+        Example: ["Software Engineer", "Software Architect", "Full Stack Developer"]
+        """
+        response_text = await self._generate_content(prompt)
+        try:
+            suggestions = self._clean_and_parse_json(response_text)
+            if isinstance(suggestions, list):
+                return suggestions
+            return []
+        except:
+            return []
 
 
 ai_service = AI_Service()

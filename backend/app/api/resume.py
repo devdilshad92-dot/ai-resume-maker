@@ -202,7 +202,8 @@ async def background_generate_resume(app_id: int):
             generated_resume = await ai_service.generate_tailored_resume(
                 application.resume.parsed_content,
                 application.job.text_content,
-                application.job.position
+                application.job.position,
+                template_id=application.template_id
             )
 
             ats_result = await ai_service.calculate_ats_score(
@@ -242,6 +243,7 @@ async def generate_tailored_resume(
         user_id=current_user.id,
         resume_id=app_in.resume_id,
         job_id=app_in.job_id,
+        template_id=app_in.template_id or "modern-ats",
         status="processing"
     )
     db.add(application)

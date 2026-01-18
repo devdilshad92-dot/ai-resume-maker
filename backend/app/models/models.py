@@ -76,3 +76,13 @@ class Application(Base):
     owner = relationship("User", back_populates="applications")
     resume = relationship("Resume", back_populates="applications")
     job = relationship("JobDescription", back_populates="applications")
+
+
+class JobRole(Base):
+    __tablename__ = "job_roles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True)  # e.g. "Software Engineer"
+    category = Column(String, index=True)  # e.g. "Tech"
+    popularity = Column(Integer, default=0)  # To sort frequent roles
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
