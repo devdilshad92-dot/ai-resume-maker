@@ -40,7 +40,7 @@ const ResumeScratch = () => {
     useEffect(() => {
         const fetchTemplates = async () => {
             try {
-                const res = await api.get<Template[]>('/resume/templates');
+                const res = await api.get<Template[]>('resume/templates');
                 setTemplates(res.data);
             } catch (err) {
                 console.error("Failed to fetch templates");
@@ -52,7 +52,7 @@ const ResumeScratch = () => {
     const handleCreateScratch = async () => {
         setLoading(true);
         try {
-            const res = await api.post<ResumeResponse>('/resume/scratch', setupData);
+            const res = await api.post<ResumeResponse>('resume/scratch', setupData);
             setResume(res.data);
             setPage('builder');
         } catch (err) {
@@ -65,7 +65,7 @@ const ResumeScratch = () => {
     const updateSection = async (sectionName: string, content: any) => {
         if (!resume) return;
         try {
-            const res = await api.patch<ResumeResponse>(`/resume/${resume.id}/update-section`, {
+            const res = await api.patch<ResumeResponse>(`resume/${resume.id}/update-section`, {
                 section_name: sectionName,
                 content: content
             });
@@ -80,7 +80,7 @@ const ResumeScratch = () => {
         setAiLoading(true);
         try {
             const currentContent = resume.parsed_content?.[sectionName];
-            const res = await api.post('/resume/ai-assistant', {
+            const res = await api.post('resume/ai-assistant', {
                 section_name: sectionName,
                 current_content: currentContent,
                 job_role: setupData.job_role,
@@ -148,13 +148,27 @@ const ResumeScratch = () => {
 
                                     <div>
                                         <label className="block text-sm font-bold text-slate-700 uppercase tracking-wider mb-3">Industry</label>
-                                        <input 
-                                            type="text" 
-                                            className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                                            placeholder="e.g. Fintech"
+                                        <select 
+                                            className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none bg-white transition-all font-medium text-slate-900"
                                             value={setupData.industry}
                                             onChange={e => setSetupData({...setupData, industry: e.target.value})}
-                                        />
+                                        >
+                                            <option value="">Select Industry</option>
+                                            <option>Technology</option>
+                                            <option>Fintech & Finance</option>
+                                            <option>Healthcare & Pharma</option>
+                                            <option>E-commerce & Retail</option>
+                                            <option>Education & EdTech</option>
+                                            <option>Marketing & Advertising</option>
+                                            <option>Real Estate</option>
+                                            <option>Manufacturing</option>
+                                            <option>Logistics & Supply Chain</option>
+                                            <option>Energy & Utilities</option>
+                                            <option>Entertainment & Media</option>
+                                            <option>Hospitality & Travel</option>
+                                            <option>Non-Profit</option>
+                                            <option>Other</option>
+                                        </select>
                                     </div>
 
                                     <div className="pt-4">

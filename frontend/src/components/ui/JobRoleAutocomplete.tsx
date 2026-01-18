@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, Loader2, Briefcase, Zap } from 'lucide-react';
+import { Search, Loader2, Briefcase, Zap, ChevronDown } from 'lucide-react';
 import api from '../../api/client';
 import { useDebounce } from '../../hooks/useDebounce';
 
@@ -31,15 +31,13 @@ export const JobRoleAutocomplete = ({ value, onChange, placeholder }: Props) => 
 
     useEffect(() => {
         const fetchSuggestions = async () => {
-            if (debouncedQuery.length < 2) {
-                setSuggestions([]);
-                return;
-            }
+            // Always fetch if open, even if empty (for popular roles)
+            if (!isOpen) return;
+
             setLoading(true);
             try {
-                const res = await api.get<JobRole[]>(`/job-roles/search?q=${debouncedQuery}`);
+                const res = await api.get<JobRole[]>(`job-roles/search?q=${debouncedQuery}`);
                 setSuggestions(res.data);
-                setIsOpen(true);
                 setActiveIndex(-1);
             } catch (err) {
                 console.error("Failed to fetch suggestions");
@@ -49,7 +47,7 @@ export const JobRoleAutocomplete = ({ value, onChange, placeholder }: Props) => 
         };
 
         fetchSuggestions();
-    }, [debouncedQuery]);
+    }, [debouncedQuery, isOpen]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -84,21 +82,22 @@ export const JobRoleAutocomplete = ({ value, onChange, placeholder }: Props) => 
 
     return (
         <div className="relative w-full" ref={containerRef}>
-            <div className="relative group">
+            <div className="relative group cursor-pointer" onClick={() => { setIsOpen(!isOpen); inputRef.current?.focus(); }}>
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <Briefcase className={`h-5 w-5 transition-colors ${isOpen ? 'text-primary' : 'text-slate-400'}`} />
                 </div>
                 <input
                     ref={inputRef}
                     type="text"
-                    className="w-full pl-12 pr-12 p-4 rounded-xl border border-slate-200 focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-medium text-slate-900 bg-white"
+                    className="w-full pl-12 pr-12 p-4 rounded-xl border border-slate-200 focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-medium text-slate-900 bg-white cursor-text"
                     placeholder={placeholder || "Search job roles..."}
                     value={query}
                     onChange={(e) => {
                         setQuery(e.target.value);
                         onChange(e.target.value);
+                        if (!isOpen) setIsOpen(true);
                     }}
-                    onFocus={() => query.length >= 2 && setIsOpen(true)}
+                    onFocus={() => setIsOpen(true)}
                     onKeyDown={handleKeyDown}
                 />
                 <div className="absolute inset-y-0 right-0 pr-4 flex items-center gap-2">
@@ -106,20 +105,31 @@ export const JobRoleAutocomplete = ({ value, onChange, placeholder }: Props) => 
                         <Loader2 className="h-5 w-5 text-primary animate-spin" />
                     ) : query.length > 0 ? (
                         <button 
-                            onClick={() => { setQuery(''); onChange(''); inputRef.current?.focus(); }}
+                            onClick={(e) => { e.stopPropagation(); setQuery(''); onChange(''); inputRef.current?.focus(); }}
                             className="p-1 hover:bg-slate-100 rounded-full transition-colors"
                         >
                             <span className="text-slate-400 text-xs font-bold px-1">✕</span>
                         </button>
                     ) : (
-                        <Search className="h-5 w-5 text-slate-300" />
+                        <ChevronDown className={`h-5 w-5 text-slate-300 transition-transform duration-300 ${isOpen ? 'rotate-180 text-primary' : ''}`} />
                     )}
                 </div>
             </div>
 
-            {isOpen && suggestions.length > 0 && (
+            {isOpen && (
                 <div className="absolute z-50 w-full mt-2 bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                    <div className="p-2 border-b border-slate-50 bg-slate-50/50">
+                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 py-1">
+                            {query.length >= 2 ? 'Search Results' : 'Popular Roles'}
+                         </p>
+                    </div>
                     <div className="p-2 max-h-72 overflow-y-auto">
+                        {suggestions.length === 0 && !loading && (
+                            <div className="p-8 text-center">
+                                <Search className="mx-auto text-slate-200 mb-2" size={32} />
+                                <p className="text-sm text-slate-400">Keep typing for AI suggestions...</p>
+                            </div>
+                        )}
                         {suggestions.map((role, idx) => (
                             <button
                                 key={role.id}
