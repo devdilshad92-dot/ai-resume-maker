@@ -25,8 +25,18 @@ services:
       - "host.docker.internal:host-gateway"
     depends_on:
       - db
+      - ollama
     volumes:
       - ./backend:/app
+    restart: always
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
     restart: always
 
   frontend:
@@ -41,3 +51,4 @@ services:
 
 volumes:
   postgres_data:
+  ollama_data:
