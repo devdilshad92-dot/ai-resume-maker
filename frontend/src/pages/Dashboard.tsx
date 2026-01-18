@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Navbar } from '../components/layout/Navbar';
-import { FileText, Plus, ArrowRight, Zap, Target, Layout } from 'lucide-react';
+import { Plus, Zap, Target, Layout, Upload } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
 
@@ -28,14 +28,25 @@ const Dashboard = () => {
                             Manage your resumes and track your job applications.
                         </p>
                     </div>
-                    <Button 
-                        size="lg" 
-                        onClick={() => navigate('/builder')} 
-                        className="shadow-lg shadow-primary/25"
-                    >
-                        <Plus className="mr-2 h-5 w-5" />
-                        Create New Resume
-                    </Button>
+                    <div className="flex gap-4">
+                        <Button 
+                            variant="outline"
+                            size="lg" 
+                            onClick={() => navigate('/builder')} 
+                            className="bg-white border-slate-200"
+                        >
+                            <Upload className="mr-2 h-5 w-5" />
+                            Upload Existing
+                        </Button>
+                        <Button 
+                            size="lg" 
+                            onClick={() => navigate('/builder/scratch')} 
+                            className="shadow-lg shadow-primary/25 bg-indigo-600"
+                        >
+                            <Plus className="mr-2 h-5 w-5" />
+                            Build from Scratch
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Stats */}

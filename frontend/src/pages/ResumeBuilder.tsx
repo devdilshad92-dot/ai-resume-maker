@@ -6,12 +6,15 @@ import { Navbar } from '../components/layout/Navbar';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
 import { ATSScoreView } from '../components/resume/ATSScoreView';
+import { TemplateRenderer } from '../components/resume/TemplateRenderer';
 import { Resume, JobDescription, Application } from '../types';
+import { JobRoleAutocomplete } from '../components/ui/JobRoleAutocomplete';
 
 const ResumeBuilder = () => {
     const [step, setStep] = useState(1);
     const [file, setFile] = useState<File | null>(null);
     const [resumeData, setResumeData] = useState<Resume | null>(null);
+    const [targetRole, setTargetRole] = useState('');
     const [jobDesc, setJobDesc] = useState('');
     const [jobData, setJobData] = useState<JobDescription | null>(null);
     const [loading, setLoading] = useState(false);
@@ -104,15 +107,14 @@ const ResumeBuilder = () => {
     };
 
     const submitJob = async () => {
-        if (!jobDesc) return;
+        if (!jobDesc || !targetRole) return;
         setLoading(true);
         try {
-            const formData = new FormData();
-            formData.append('text_content', jobDesc);
-            formData.append('position', 'Target Role'); 
-            formData.append('company', 'Target Company');
-            
-            const res = await api.post<JobDescription>('/resume/job', formData);
+            const res = await api.post<JobDescription>('/resume/job', {
+                text_content: jobDesc,
+                position: targetRole, 
+                company: 'Target Company'
+            });
             setJobData(res.data);
             setLoading(false);
             setStep(3);
@@ -126,11 +128,10 @@ const ResumeBuilder = () => {
         if (!resumeData || !jobData) return;
         setLoading(true);
         try {
-            const formData = new FormData();
-            formData.append('resume_id', String(resumeData.id));
-            formData.append('job_id', String(jobData.id));
-            
-            const res = await api.post<Application>('/resume/generate', formData);
+            const res = await api.post<Application>('/resume/generate', {
+                resume_id: resumeData.id,
+                job_id: jobData.id
+            });
             const appId = res.data.id;
             
             // Start polling
@@ -226,10 +227,20 @@ const ResumeBuilder = () => {
                                         <p className="text-slate-600">Paste the full job description. The AI will analyze keywords and requirements.</p>
                                     </div>
 
-                                    <div className="space-y-4">
+                                    <div className="space-y-6">
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 uppercase tracking-wider mb-2">Target Job Role</label>
+                                            <JobRoleAutocomplete 
+                                                value={targetRole} 
+                                                onChange={setTargetRole} 
+                                                placeholder="e.g. Senior Software Engineer"
+                                            />
+                                        </div>
+
                                         <div className="relative">
+                                            <label className="block text-sm font-bold text-slate-700 uppercase tracking-wider mb-2">Full Job Description</label>
                                             <textarea 
-                                                className="w-full h-80 p-5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none transition-all outline-none font-mono text-sm leading-relaxed"
+                                                className="w-full h-64 p-5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none transition-all outline-none font-mono text-sm leading-relaxed"
                                                 placeholder="Paste Job Description here..."
                                                 value={jobDesc}
                                                 onChange={(e) => setJobDesc(e.target.value)}
@@ -245,7 +256,7 @@ const ResumeBuilder = () => {
                                             </Button>
                                             <Button 
                                                 onClick={submitJob} 
-                                                disabled={loading || !jobDesc}
+                                                disabled={loading || !jobDesc || !targetRole}
                                                 size="lg"
                                                 className="shadow-lg shadow-primary/20"
                                             >
@@ -322,51 +333,12 @@ const ResumeBuilder = () => {
                                         </div>
                                     </div>
                                     <div className="flex-1 overflow-y-auto p-8 bg-slate-50">
-                                        <div className="bg-white shadow-sm min-h-[1000px] w-full max-w-[800px] mx-auto p-12 ats-preview border border-slate-100">
-                                            {/* Render JSON as Clean HTML Resume */}
+                                        <div className="bg-white shadow-sm min-h-[1000px] w-full max-w-[800px] mx-auto ats-preview border border-slate-100">
                                             {result.generated_content && typeof result.generated_content === 'object' && (
-                                                <div className="space-y-6">
-                                                    <div className="text-center border-b pb-6">
-                                                        <h1 className="text-3xl font-bold uppercase tracking-wide text-slate-900">{(result.generated_content as any).full_name || "Your Name"}</h1>
-                                                        <div className="flex justify-center gap-4 mt-2 text-sm text-slate-600">
-                                                             <span>{(result.generated_content as any).contact_info?.email || "email@example.com"}</span>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <section>
-                                                        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-700 border-b border-slate-300 pb-1 mb-3">Professional Summary</h3>
-                                                        <p className="text-sm text-slate-800 leading-relaxed">{(result.generated_content as any).summary}</p>
-                                                    </section>
-
-                                                    <section>
-                                                        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-700 border-b border-slate-300 pb-1 mb-3">Work Experience</h3>
-                                                        <div className="space-y-4">
-                                                            {(result.generated_content as any).work_experience?.map((job: any, i: number) => (
-                                                                <div key={i}>
-                                                                    <div className="flex justify-between items-baseline mb-1">
-                                                                        <h4 className="font-bold text-slate-900">{job.role}</h4>
-                                                                        <span className="text-sm text-slate-600 font-medium">{job.duration}</span>
-                                                                    </div>
-                                                                    <div className="text-sm text-slate-700 font-medium mb-2">{job.company}</div>
-                                                                    <ul className="list-disc list-outside ml-4 space-y-1 text-sm text-slate-700">
-                                                                        {job.points?.map((pt: string, j: number) => (
-                                                                            <li key={j}>{pt}</li>
-                                                                        ))}
-                                                                    </ul>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </section>
-                                                    
-                                                     <section>
-                                                        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-700 border-b border-slate-300 pb-1 mb-3">Skills</h3>
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {(result.generated_content as any).skills?.map((skill: string, i: number) => (
-                                                                <span key={i} className="text-sm text-slate-800 bg-slate-100 px-2 py-1 rounded">{skill}</span>
-                                                            ))}
-                                                        </div>
-                                                    </section>
-                                                </div>
+                                                <TemplateRenderer 
+                                                    content={result.generated_content as any} 
+                                                    templateId={result.template_id || 'minimal-pro'} 
+                                                />
                                             )}
                                         </div>
                                     </div>
