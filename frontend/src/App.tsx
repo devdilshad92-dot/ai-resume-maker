@@ -1,7 +1,8 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import ResumeBuilder from './pages/ResumeBuilder';
+import ResumeScratch from './pages/ResumeScratch';
 import PrivateRoute from './components/PrivateRoute';
 
 function App() {
@@ -23,6 +24,14 @@ function App() {
             element={
               <PrivateRoute>
                 <ResumeBuilder />
+              </PrivateRoute>
+            } 
+          />
+          <Route 
+            path="/builder/scratch" 
+            element={
+              <PrivateRoute>
+                <ResumeScratch />
               </PrivateRoute>
             } 
           />

@@ -9,8 +9,13 @@ export interface Resume {
     file_path?: string;
     parsed_content?: any;
     raw_text?: string;
+    template_id: string;
+    is_draft: boolean;
+    meta_data?: any;
     created_at: string;
 }
+
+export type ResumeResponse = Resume;
 
 export interface JobDescription {
     id: number;
@@ -23,9 +28,10 @@ export interface JobDescription {
 export interface Application {
     id: number;
     status: 'pending' | 'processing' | 'completed' | 'failed';
-    generated_content?: string | ResumeContent;
+    generated_content?: any;
     ats_score?: number;
     ats_feedback?: ATSFeedback;
+    template_id: string;
     created_at: string;
 }
 
@@ -61,4 +67,11 @@ export interface ATSFeedback {
     missing_keywords: string[];
     feedback: string[];
     improvement_tips: string[];
+}
+export interface Template {
+    id: string;
+    name: string;
+    description: string;
+    category: string;
+    preview_url?: string;
 }
