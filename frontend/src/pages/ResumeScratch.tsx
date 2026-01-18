@@ -14,6 +14,7 @@ import { ResumeResponse, Template } from '../types';
 
 import { JobRoleAutocomplete } from '../components/ui/JobRoleAutocomplete';
 import { TemplateGallery } from '../components/resume/TemplateGallery';
+import { TemplateRenderer } from '../components/resume/TemplateRenderer';
 
 const ResumeScratch = () => {
     const navigate = useNavigate();
@@ -32,21 +33,32 @@ const ResumeScratch = () => {
         template_id: 'minimal-pro'
     });
 
-    const [suggestions, setSuggestions] = useState<{suggestions: string[], tips: string[]}>({
+    const [metadata, setMetadata] = useState<{industries: string[], experience_levels: string[]}>({
+        industries: [],
+        experience_levels: []
+    });
+
+    const [suggestions, setSuggestions] = useState<{suggestions: string[], tips: string[], improved_content?: string}>({
         suggestions: [],
-        tips: []
+        tips: [],
+        improved_content: ''
     });
 
     useEffect(() => {
-        const fetchTemplates = async () => {
+        const fetchInitialData = async () => {
             try {
-                const res = await api.get<Template[]>('resume/templates');
-                setTemplates(res.data);
+                // Fetch templates and metadata in parallel
+                const [templateRes, metadataRes] = await Promise.all([
+                    api.get<Template[]>('resume/templates'),
+                    api.get('job-roles/metadata')
+                ]);
+                setTemplates(templateRes.data);
+                setMetadata(metadataRes.data);
             } catch (err) {
-                console.error("Failed to fetch templates");
+                console.error("Failed to fetch initial data");
             }
         };
-        fetchTemplates();
+        fetchInitialData();
     }, []);
 
     const handleCreateScratch = async () => {
@@ -87,7 +99,26 @@ const ResumeScratch = () => {
                 experience_level: setupData.experience_level,
                 industry: setupData.industry
             });
-            setSuggestions(res.data);
+            // Normalize suggestions for small model variations (handles strings or arrays)
+            const raw = res.data;
+            const normalize = (val: any): string[] => {
+                if (!val) return [];
+                const items = Array.isArray(val) ? val : [val];
+                return items.map(item => {
+                    if (typeof item === 'string') return item;
+                    if (item && typeof item === 'object') {
+                        return item.text || item.bullet || item.tip || item.suggestion || JSON.stringify(item);
+                    }
+                    return String(item);
+                });
+            };
+
+            setSuggestions({
+                suggestions: normalize(raw.suggestions || raw.suggestion),
+                tips: normalize(raw.tips || raw.tip),
+                improved_content: typeof raw.improved_content === 'string' ? raw.improved_content : 
+                                 (raw.improved_content ? JSON.stringify(raw.improved_content) : '')
+            });
         } catch (err) {
             console.error("AI Assistant failed");
         } finally {
@@ -138,11 +169,9 @@ const ResumeScratch = () => {
                                             value={setupData.experience_level}
                                             onChange={e => setSetupData({...setupData, experience_level: e.target.value})}
                                         >
-                                            <option>Fresher</option>
-                                            <option>Junior</option>
-                                            <option>Mid</option>
-                                            <option>Senior</option>
-                                            <option>Lead</option>
+                                            {metadata.experience_levels.map(level => (
+                                                <option key={level}>{level}</option>
+                                            ))}
                                         </select>
                                     </div>
 
@@ -154,20 +183,9 @@ const ResumeScratch = () => {
                                             onChange={e => setSetupData({...setupData, industry: e.target.value})}
                                         >
                                             <option value="">Select Industry</option>
-                                            <option>Technology</option>
-                                            <option>Fintech & Finance</option>
-                                            <option>Healthcare & Pharma</option>
-                                            <option>E-commerce & Retail</option>
-                                            <option>Education & EdTech</option>
-                                            <option>Marketing & Advertising</option>
-                                            <option>Real Estate</option>
-                                            <option>Manufacturing</option>
-                                            <option>Logistics & Supply Chain</option>
-                                            <option>Energy & Utilities</option>
-                                            <option>Entertainment & Media</option>
-                                            <option>Hospitality & Travel</option>
-                                            <option>Non-Profit</option>
-                                            <option>Other</option>
+                                            {metadata.industries.map(industry => (
+                                                <option key={industry}>{industry}</option>
+                                            ))}
                                         </select>
                                     </div>
 
@@ -319,6 +337,24 @@ const ResumeScratch = () => {
                                         </button>
                                     ))}
                                 </div>
+
+                                {suggestions.improved_content && (
+                                    <div className="mt-8 p-6 bg-slate-800 rounded-2xl border border-slate-700">
+                                        <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-3">AI Rewrite</p>
+                                        <p className="text-slate-200 leading-relaxed italic mb-4">"{suggestions.improved_content}"</p>
+                                        <Button 
+                                            size="sm" 
+                                            className="bg-indigo-600 hover:bg-indigo-500"
+                                            onClick={() => {
+                                                updateSection(currentSection.id, suggestions.improved_content);
+                                                setSuggestions({ ...suggestions, improved_content: '' });
+                                            }}
+                                        >
+                                            <CheckCircle2 size={14} className="mr-2" />
+                                            Apply Rewrite
+                                        </Button>
+                                    </div>
+                                )}
                             </motion.div>
                         )}
 
@@ -345,33 +381,18 @@ const ResumeScratch = () => {
                              <span className="text-[10px] font-bold text-slate-400 uppercase">Saving...</span>
                         </div>
                     </div>
-                    <div className="flex-1 bg-white shadow-2xl rounded-sm border border-slate-200 overflow-y-auto p-8 origin-top scale-[0.85] w-[117%] -translate-x-[8%]">
-                         {/* Minimal Preview Mockup */}
-                         <div className="max-w-2xl mx-auto space-y-6 text-slate-800">
-                            <div className="text-center border-b pb-4">
-                                <h1 className="text-2xl font-bold uppercase">{resume?.parsed_content?.full_name || 'Your Name'}</h1>
-                                <p className="text-xs text-slate-500 mt-1">{resume?.parsed_content?.contact_info?.email}</p>
+                    <div className="flex-1 bg-white shadow-2xl rounded-sm border border-slate-200 overflow-y-auto p-4 origin-top scale-[0.7] w-[142%] -translate-x-[15%]">
+                        {resume?.parsed_content ? (
+                            <TemplateRenderer 
+                                content={resume.parsed_content} 
+                                templateId={setupData.template_id} 
+                            />
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-full text-slate-300">
+                                <Layout size={48} className="mb-4 opacity-20" />
+                                <p className="text-sm font-medium">Initializing Template...</p>
                             </div>
-                            
-                            <section>
-                                <h4 className="text-[10px] font-bold border-b mb-2 uppercase tracking-widest text-slate-400">Professional Summary</h4>
-                                <p className="text-[11px] leading-relaxed italic">{resume?.parsed_content?.summary || 'No summary yet...'}</p>
-                            </section>
-
-                            <section>
-                                <h4 className="text-[10px] font-bold border-b mb-2 uppercase tracking-widest text-slate-400">Core Competencies</h4>
-                                <div className="flex flex-wrap gap-1">
-                                    {resume?.parsed_content?.skills?.map((s: string, i: number) => (
-                                        <span key={i} className="text-[9px] bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">{s}</span>
-                                    ))}
-                                </div>
-                            </section>
-
-                            <div className="text-center mt-20">
-                                <Layout className="mx-auto text-slate-200 mb-2" size={32} />
-                                <p className="text-[10px] text-slate-300">More sections will appear as you type</p>
-                            </div>
-                         </div>
+                        )}
                     </div>
                 </div>
             </div>

@@ -142,6 +142,8 @@ export const JobRoleAutocomplete = ({ value, onChange, placeholder }: Props) => 
                                     setQuery(role.name);
                                     onChange(role.name);
                                     setIsOpen(false);
+                                    // Report selection for popularity tracking
+                                    api.post(`job-roles/select?name=${encodeURIComponent(role.name)}`).catch(() => {});
                                 }}
                                 onMouseEnter={() => setActiveIndex(idx)}
                             >
