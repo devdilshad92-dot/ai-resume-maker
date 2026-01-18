@@ -18,17 +18,21 @@ AI_ROLE_CACHE = {}
 
 @router.get("/search", response_model=List[JobRoleResponse])
 async def search_job_roles(
-    q: str = Query(..., min_length=2),
+    q: str = Query("", min_length=0),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """
-    Search for job roles using full-text search and AI fallback.
+    Search for job roles. Returns popular roles if q is empty.
     """
     clean_q = q.strip().lower()
 
-    # 1. Database Search (PostgreSQL ILIKE for prefix match)
-    query = select(JobRole).where(JobRole.name.ilike(f"{clean_q}%")).order_by(
-        JobRole.popularity.desc()).limit(10)
+    # 1. Database Search
+    if not clean_q:
+        query = select(JobRole).order_by(JobRole.popularity.desc()).limit(10)
+    else:
+        query = select(JobRole).where(JobRole.name.ilike(f"{clean_q}%")).order_by(
+            JobRole.popularity.desc()).limit(10)
+
     result = await db.execute(query)
     roles = result.scalars().all()
 

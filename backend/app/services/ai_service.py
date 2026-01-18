@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, List, Dict
 import google.generativeai as genai
 import ollama
 from app.core.config import settings
