@@ -27,7 +27,6 @@ services:
       - ./backend:/app
     restart: always
 
-
   frontend:
     image: node:18-alpine
     working_dir: /app
@@ -40,5 +39,3 @@ services:
 
 volumes:
   postgres_data:
-
-

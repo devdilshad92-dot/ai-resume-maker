@@ -10,6 +10,24 @@ import json
 
 router = APIRouter()
 
+# Centralized metadata to avoid frontend hardcoding
+METADATA = {
+    "industries": [
+        "Technology", "Fintech & Finance", "Healthcare & Pharma",
+        "E-commerce & Retail", "Education & EdTech", "Marketing & Advertising",
+        "Real Estate", "Manufacturing", "Logistics & Supply Chain",
+        "Energy & Utilities", "Entertainment & Media", "Hospitality & Travel",
+        "Non-Profit", "Other"
+    ],
+    "experience_levels": ["Fresher", "Junior", "Mid", "Senior", "Lead", "Principal"]
+}
+
+
+@router.get("/metadata")
+async def get_metadata() -> Any:
+    """Return common metadata like industries and experience levels."""
+    return METADATA
+
 
 # Simple in-memory cache to avoid redundant AI calls during a session
 # In production, this would be Redis
@@ -53,3 +71,25 @@ async def search_job_roles(
                     break
 
     return roles
+
+
+@router.post("/select")
+async def select_job_role(
+    name: str,
+    db: AsyncSession = Depends(get_db)
+) -> Any:
+    """Increment popularity for a selected job role."""
+    # Find existing
+    query = select(JobRole).where(JobRole.name.ilike(name))
+    result = await db.execute(query)
+    role = result.scalar_one_or_none()
+
+    if role:
+        role.popularity += 1
+    else:
+        # Create new one if it doesn't exist (Self-learning)
+        role = JobRole(name=name, category="Generic", popularity=1)
+        db.add(role)
+
+    await db.commit()
+    return {"status": "success"}

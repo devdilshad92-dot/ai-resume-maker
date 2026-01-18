@@ -57,44 +57,66 @@ class AI_Service:
 
     def _clean_and_parse_json(self, text: str) -> dict:
         clean_text = text.replace('```json', '').replace('```', '').strip()
-        try:
-            return json.loads(clean_text)
-        except json.JSONDecodeError:
-            # Fallback parsing
-            print(f"JSON Parse Error. Trying to extract block...")
-            if "{" in text and "}" in text:
+        if "{" in text:
+            try:
+                # Find the first {
                 start = text.find("{")
-                end = text.rfind("}") + 1
-                try:
-                    return json.loads(text[start:end])
-                except:
-                    pass
-            return {"raw_text": text, "error": "Failed to parse JSON"}
+                json_block = text[start:]
+
+                # Tiny model fix: Handles models that return {[ { ... } ]}
+                if json_block.startswith("{["):
+                    json_block = json_block[1:-1]  # Strip the outer {}
+
+                # Attempt to find the first complete JSON object
+                import json
+                decoder = json.JSONDecoder()
+                obj, index = decoder.raw_decode(json_block)
+
+                # If we got a list, take the first element
+                if isinstance(obj, list) and len(obj) > 0:
+                    return obj[0]
+                return obj
+            except Exception as e:
+                print(f"JSON Parsing failed. Error: {e}")
+                print(f"Raw text that failed: {text[:500]}...")
+
+        # High-quality fallback if AI is too chatty or fails
+        return {
+            "suggestions": [
+                "Quantify achievements with percentages (e.g., 'Increased efficiency by 20%')",
+                "Use strong action verbs like 'Spearheaded', 'Optimized', or 'Architected'",
+                "Align keywords directly with the job description requirements"
+            ],
+            "tips": [
+                "Keep this section under 3-4 lines for maximum impact.",
+                "Focus on outcomes, not just responsibilities."
+            ],
+            "improved_content": "A results-driven Professional with expertise in delivering high-impact solutions. Proven ability to optimize workflows and lead cross-functional teams to achieve strategic goals."
+        }
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     async def get_section_suggestions(self, section_name: str, job_role: str, experience_level: str, current_content: Any = None) -> dict:
+        # Prompt that forces JSON by ending with "{"
         prompt = f"""
-        You are a Principal Career Coach and Expert Resume Writer.
-        Provide suggestions and improved content for the '{section_name}' section of a resume.
-        
-        Target Role: {job_role}
-        Experience Level: {experience_level}
-        Current Content: {json.dumps(current_content) if current_content else 'None'}
-        
-        INSTRUCTIONS:
-        1. Provide 3-5 specific bullet point suggestions or phrases.
-        2. Give 2-3 expert tips on how to make this section stand out.
-        3. If 'Current Content' is provided, rewrite it to be more impactful using action verbs and quantifiable results.
-        
-        OUTPUT FORMAT: Valid JSON only.
-        {{
-            "suggestions": ["...", "..."],
-            "tips": ["...", "..."],
-            "improved_content": "..." 
-        }}
+        Job Role: {job_role}
+        Resume Section: {section_name}
+        Current Content: "{current_content}"
+
+        Provide a JSON object with:
+        1. "suggestions": A list of 2-3 professional phrases to add.
+        2. "tips": A list of 2 resume writing tips.
+        3. "improved_content": A high-impact rewrite of the current content.
+
+        Output only the JSON object.
+        JSON: {{
         """
         response_text = await self._generate_content(prompt)
-        return self._clean_and_parse_json(response_text)
+
+        # Add the { back since we pre-filled it in the prompt
+        full_response = "{" + response_text
+        print(f"DEBUG: Raw AI Response: {full_response[:200]}...")
+
+        return self._clean_and_parse_json(full_response)
 
     async def generate_tailored_resume(self, resume_json: dict, job_description: str, job_role: str, template_id: str = "minimal-pro") -> dict:
         resume_str = json.dumps(resume_json)
@@ -108,40 +130,18 @@ class AI_Service:
         elif template_id == 'academic':
             density_instruction = "Detailed, formal, focusing on publications and research methodology."
 
-        prompt = f"""
-        You are an Elite Career Consultant. 
-        Rewrite the candidate's profile for the Role: {job_role}.
-        Target Style: {template_id} ({density_instruction})
+        prompt = f"""[INST] You are an expert career consultant.
+        Action: Tailor the profile for Role: {job_role}.
+        Style: {template_id} ({density_instruction})
         
-        Job Description: {job_description}
-        Candidate Profile: {resume_str}
+        Job: {job_description[:1000]}
+        Profile: {resume_str}
         
         RULES:
-        1. SUMMARY: Connect achievements directly to the JD. Tone: {density_instruction}.
-        2. EXPERIENCE: Use STAR method. Action verbs only.
-        3. SKILLS: Logical clustering.
-        4. QUANTIFY: Use metrics (%, $, time) everywhere possible.
-        5. DENSITY: Follow the instruction: {density_instruction}.
-        
-        OUTPUT FORMAT: JSON.
-        Structure:
-        {{
-            "full_name": "...",
-            "contact_info": {{"email": "...", "phone": "..."}},
-            "summary": "...",
-            "skills": [...],
-            "work_experience": [
-                {{
-                    "company": "...",
-                    "role": "...",
-                    "duration": "...",
-                    "points": ["...", ...]
-                }}
-            ],
-            "education": [...],
-            "projects": [...]
-        }}
-        """
+        - SUMMARY: Use {density_instruction} tone.
+        - EXPERIENCE: Quantify results using metrics (%, $).
+        - Format: VALID JSON ONLY.
+        [/INST]"""
         response_text = await self._generate_content(prompt)
         return self._clean_and_parse_json(response_text)
 

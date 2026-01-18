@@ -141,7 +141,7 @@ async def update_resume_section(
     return resume
 
 
-@router.post("/ai-assistant", response_model=SectionAISuggestionResponse)
+@router.post("/ai-assistant", response_model=Any)
 async def get_ai_assistant_suggestions(
     req: SectionAISuggestionRequest,
     current_user: User = Depends(deps.get_current_user),
