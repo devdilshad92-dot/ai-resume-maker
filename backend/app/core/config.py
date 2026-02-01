@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     AI_PROVIDER: str = "ollama"  # or "gemini"
     GEMINI_API_KEY: str = ""
     OLLAMA_HOST: str = "http://host.docker.internal:11434"
-    AI_MODEL: str = "llama3"
+    AI_MODEL: str = "tinyllama"
 
     # Redis
     REDIS_URL: str = "redis://redis:6379/0"

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, Loader2, Briefcase } from 'lucide-react';
+import { Search, Loader2, Briefcase, Zap, ChevronDown } from 'lucide-react';
 import api from '../../api/client';
 import { useDebounce } from '../../hooks/useDebounce';
 
@@ -20,8 +20,10 @@ export const JobRoleAutocomplete = ({ value, onChange, placeholder }: Props) => 
     const [suggestions, setSuggestions] = useState<JobRole[]>([]);
     const [loading, setLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
+    const [activeIndex, setActiveIndex] = useState(-1);
     const debouncedQuery = useDebounce(query, 300);
     const containerRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         setQuery(value);
@@ -29,15 +31,14 @@ export const JobRoleAutocomplete = ({ value, onChange, placeholder }: Props) => 
 
     useEffect(() => {
         const fetchSuggestions = async () => {
-            if (debouncedQuery.length < 2) {
-                setSuggestions([]);
-                return;
-            }
+            // Always fetch if open, even if empty (for popular roles)
+            if (!isOpen) return;
+
             setLoading(true);
             try {
-                const res = await api.get<JobRole[]>(`/job-roles/search?q=${debouncedQuery}`);
+                const res = await api.get<JobRole[]>(`job-roles/search?q=${debouncedQuery}`);
                 setSuggestions(res.data);
-                setIsOpen(true);
+                setActiveIndex(-1);
             } catch (err) {
                 console.error("Failed to fetch suggestions");
             } finally {
@@ -46,7 +47,7 @@ export const JobRoleAutocomplete = ({ value, onChange, placeholder }: Props) => 
         };
 
         fetchSuggestions();
-    }, [debouncedQuery]);
+    }, [debouncedQuery, isOpen]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -58,50 +59,112 @@ export const JobRoleAutocomplete = ({ value, onChange, placeholder }: Props) => 
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (!isOpen || suggestions.length === 0) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setActiveIndex(prev => (prev < suggestions.length - 1 ? prev + 1 : prev));
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setActiveIndex(prev => (prev > 0 ? prev - 1 : prev));
+        } else if (e.key === 'Enter') {
+            if (activeIndex >= 0) {
+                const role = suggestions[activeIndex];
+                setQuery(role.name);
+                onChange(role.name);
+                setIsOpen(false);
+            }
+        } else if (e.key === 'Escape') {
+            setIsOpen(false);
+        }
+    };
+
     return (
         <div className="relative w-full" ref={containerRef}>
-            <div className="relative">
+            <div className="relative group cursor-pointer" onClick={() => { setIsOpen(!isOpen); inputRef.current?.focus(); }}>
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Briefcase className="h-5 w-5 text-slate-400" />
+                    <Briefcase className={`h-5 w-5 transition-colors ${isOpen ? 'text-primary' : 'text-slate-400'}`} />
                 </div>
                 <input
+                    ref={inputRef}
                     type="text"
-                    className="w-full pl-12 pr-12 p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                    className="w-full pl-12 pr-12 p-4 rounded-xl border border-slate-200 focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-medium text-slate-900 bg-white cursor-text"
                     placeholder={placeholder || "Search job roles..."}
                     value={query}
                     onChange={(e) => {
                         setQuery(e.target.value);
                         onChange(e.target.value);
+                        if (!isOpen) setIsOpen(true);
                     }}
-                    onFocus={() => query.length >= 2 && setIsOpen(true)}
+                    onFocus={() => setIsOpen(true)}
+                    onKeyDown={handleKeyDown}
                 />
-                <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
-                    {loading ? <Loader2 className="h-5 w-5 text-primary animate-spin" /> : <Search className="h-5 w-5 text-slate-300" />}
+                <div className="absolute inset-y-0 right-0 pr-4 flex items-center gap-2">
+                    {loading ? (
+                        <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                    ) : query.length > 0 ? (
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); setQuery(''); onChange(''); inputRef.current?.focus(); }}
+                            className="p-1 hover:bg-slate-100 rounded-full transition-colors"
+                        >
+                            <span className="text-slate-400 text-xs font-bold px-1">✕</span>
+                        </button>
+                    ) : (
+                        <ChevronDown className={`h-5 w-5 text-slate-300 transition-transform duration-300 ${isOpen ? 'rotate-180 text-primary' : ''}`} />
+                    )}
                 </div>
             </div>
 
-            {isOpen && suggestions.length > 0 && (
-                <div className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="p-2">
-                        {suggestions.map((role) => (
+            {isOpen && (
+                <div className="absolute z-50 w-full mt-2 bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                    <div className="p-2 border-b border-slate-50 bg-slate-50/50">
+                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 py-1">
+                            {query.length >= 2 ? 'Search Results' : 'Popular Roles'}
+                         </p>
+                    </div>
+                    <div className="p-2 max-h-72 overflow-y-auto">
+                        {suggestions.length === 0 && !loading && (
+                            <div className="p-8 text-center">
+                                <Search className="mx-auto text-slate-200 mb-2" size={32} />
+                                <p className="text-sm text-slate-400">Keep typing for AI suggestions...</p>
+                            </div>
+                        )}
+                        {suggestions.map((role, idx) => (
                             <button
                                 key={role.id}
-                                className="w-full flex items-center justify-between px-4 py-3 text-sm rounded-lg hover:bg-slate-50 transition-colors group"
+                                className={`w-full flex items-center justify-between px-4 py-3.5 text-sm rounded-xl transition-all group ${
+                                    activeIndex === idx 
+                                        ? 'bg-primary text-white shadow-lg scale-[1.02]' 
+                                        : 'hover:bg-slate-50 text-slate-700'
+                                }`}
                                 onClick={() => {
                                     setQuery(role.name);
                                     onChange(role.name);
                                     setIsOpen(false);
+                                    // Report selection for popularity tracking
+                                    api.post(`job-roles/select?name=${encodeURIComponent(role.name)}`).catch(() => {});
                                 }}
+                                onMouseEnter={() => setActiveIndex(idx)}
                             >
                                 <div className="flex flex-col items-start">
-                                    <span className="font-semibold text-slate-900 group-hover:text-primary transition-colors">{role.name}</span>
-                                    <span className="text-xs text-slate-400 lowercase italic">{role.category}</span>
+                                    <span className={`font-bold ${activeIndex === idx ? 'text-white' : 'text-slate-900'}`}>
+                                        {role.name}
+                                    </span>
+                                    <span className={`text-[10px] uppercase tracking-wider font-bold ${activeIndex === idx ? 'text-white/70' : 'text-slate-400'}`}>
+                                        {role.category}
+                                    </span>
                                 </div>
-                                <div className="p-1 bg-slate-50 rounded group-hover:bg-primary/10 transition-colors">
-                                    <Search size={14} className="text-slate-300 group-hover:text-primary" />
-                                </div>
+                                {role.category === 'AI Suggested' && (
+                                    <Zap size={14} className={activeIndex === idx ? 'text-white' : 'text-amber-500'} />
+                                )}
                             </button>
                         ))}
+                    </div>
+                    <div className="p-3 bg-slate-50 border-t border-slate-100">
+                        <p className="text-[10px] text-slate-400 font-medium text-center italic">
+                            Tip: Use arrow keys to navigate and Enter to select
+                        </p>
                     </div>
                 </div>
             )}

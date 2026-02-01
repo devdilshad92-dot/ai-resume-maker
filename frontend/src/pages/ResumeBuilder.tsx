@@ -47,12 +47,13 @@ const ResumeBuilder = () => {
         return () => window.clearInterval(interval);
     }, [loading, step]);
 
+
     const pollApplicationStatus = useCallback(async (appId: number) => {
         activeAppIdRef.current = appId;
         
         pollIdRef.current = window.setInterval(async () => {
              try {
-                const appRes = await api.get<Application>(`/resume/application/${appId}`);
+                const appRes = await api.get<Application>(`resume/application/${appId}`);
                 const appData = appRes.data;
                 
                 if (appData.status === 'completed') {
@@ -92,7 +93,7 @@ const ResumeBuilder = () => {
         formData.append('file', f);
         
         try {
-            const res = await api.post<Resume>('/resume/upload', formData, {
+            const res = await api.post<Resume>('resume/upload', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             setResumeData(res.data);
@@ -110,7 +111,7 @@ const ResumeBuilder = () => {
         if (!jobDesc || !targetRole) return;
         setLoading(true);
         try {
-            const res = await api.post<JobDescription>('/resume/job', {
+            const res = await api.post<JobDescription>('resume/job', {
                 text_content: jobDesc,
                 position: targetRole, 
                 company: 'Target Company'
@@ -124,11 +125,11 @@ const ResumeBuilder = () => {
         }
     };
 
-    const generateResume = async () => {
+    const generateResume = useCallback(async () => {
         if (!resumeData || !jobData) return;
         setLoading(true);
         try {
-            const res = await api.post<Application>('/resume/generate', {
+            const res = await api.post<Application>('resume/generate', {
                 resume_id: resumeData.id,
                 job_id: jobData.id
             });
@@ -141,7 +142,14 @@ const ResumeBuilder = () => {
             setLoading(false);
             alert("Failed to start generation.");
         }
-    };
+    }, [resumeData, jobData, pollApplicationStatus]);
+
+    // Auto-trigger generation when entering step 3
+    useEffect(() => {
+        if (step === 3 && !loading && !result) {
+            generateResume();
+        }
+    }, [step, loading, result, generateResume]);
 
     return (
         <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
@@ -306,9 +314,6 @@ const ResumeBuilder = () => {
                                      {loading && (
                                         <p className="text-sm text-slate-400 mt-4 animate-pulse">This usually takes about 20-30 seconds...</p>
                                      )}
-                                </div>
-                                <div className="hidden">{/* Trigger generation immediately if entering this step directly via state flow */}
-                                    {step === 3 && !loading && !result && <span ref={() => generateResume()}></span>}
                                 </div>
                             </motion.div>
                         )}
