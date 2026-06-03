@@ -5,6 +5,7 @@ import json
 import asyncio
 import aiofiles
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, BackgroundTasks, Form
+from tenacity import RetryError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -83,6 +84,40 @@ async def upload_resume(
     return resume
 
 
+@router.get("/list", response_model=List[ResumeResponse])
+async def list_resumes(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    List all resumes for the current user, most recently updated first.
+    """
+    result = await db.execute(
+        select(Resume)
+        .where(Resume.user_id == current_user.id)
+        .order_by(Resume.updated_at.desc().nullslast(), Resume.created_at.desc())
+    )
+    return result.scalars().all()
+
+
+@router.get("/{resume_id}", response_model=ResumeResponse)
+async def get_resume(
+    resume_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Fetch a single resume owned by the current user.
+    """
+    result = await db.execute(
+        select(Resume).where(Resume.id == resume_id, Resume.user_id == current_user.id)
+    )
+    resume = result.scalars().first()
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found")
+    return resume
+
+
 @router.post("/scratch", response_model=ResumeResponse)
 async def create_resume_from_scratch(
     resume_in: ResumeCreateScratch,
@@ -146,16 +181,21 @@ async def get_ai_assistant_suggestions(
     req: SectionAISuggestionRequest,
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
-    """
-    Get AI-powered suggestions for specific resume sections.
-    """
-    suggestions = await ai_service.get_section_suggestions(
-        section_name=req.section_name,
-        job_role=req.job_role,
-        experience_level=req.experience_level,
-        current_content=req.current_content
-    )
-    return suggestions
+    try:
+        return await ai_service.get_section_suggestions(
+            section_name=req.section_name,
+            job_role=req.job_role,
+            experience_level=req.experience_level,
+            current_content=req.current_content,
+            tone=req.tone or "Professional",
+        )
+    except RetryError as e:
+        cause = str(e.last_attempt.exception()).lower()
+        if any(w in cause for w in ("quota", "exhausted", "rate limit", "billing")):
+            raise HTTPException(status_code=429, detail="AI quota exceeded. Please wait a moment and try again.")
+        raise HTTPException(status_code=503, detail="AI service unavailable. Please try again shortly.")
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"AI error: {str(e)[:120]}")
 
 
 @router.post("/job", response_model=JobDescriptionResponse)

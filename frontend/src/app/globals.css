@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,35 +6,124 @@
 
 @layer base {
   :root {
+    --bg: #FAFAFC;
+    --primary: #6D5DFC;
+    --primary-light: #EEF0FF;
+    --primary-dark: #5646E0;
+    --accent: #00D4FF;
+    --success: #00C27A;
+    --warning: #F59E0B;
+    --danger: #EF4444;
+    --border: rgba(0,0,0,0.06);
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+    --shadow-xl: 0 20px 60px rgba(0,0,0,0.1), 0 4px 16px rgba(0,0,0,0.06);
+    --radius: 16px;
+    --radius-lg: 20px;
+    --radius-xl: 24px;
+
+    /* Tailwind CSS variable bridge */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
+    --primary-tw: 251 95% 68%;
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
+    --accent-tw: 210 40% 96.1%;
     --accent-foreground: 222.2 47.4% 11.2%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
+    --border-tw: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
+    --ring: 251 95% 68%;
+    --radius-tw: 0.75rem;
   }
 }
 
 @layer base {
   * { @apply border-border; }
-  body { @apply bg-slate-50 text-foreground font-sans antialiased; }
+  body { background: var(--bg); @apply text-slate-900 font-sans antialiased; }
 }
 
-.ats-preview {
-  font-family: 'Times New Roman', Times, serif;
-  line-height: 1.5;
+/* ─── Utility classes ──────────────────────────────────────────────────────── */
+.surface {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border);
 }
+
+.surface-elevated {
+  background: white;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--border);
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  border-radius: var(--radius);
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+.btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(109,93,252,0.35); }
+.btn-primary:active { transform: translateY(0); }
+
+.btn-ghost {
+  background: transparent;
+  color: #64748b;
+  border-radius: var(--radius);
+  transition: all 0.15s ease;
+}
+.btn-ghost:hover { background: rgba(0,0,0,0.04); color: #1e293b; }
+
+/* ─── Gradient utilities ────────────────────────────────────────────────────── */
+.gradient-primary { background: linear-gradient(135deg, var(--primary), #9B8BFF); }
+.gradient-text { background: linear-gradient(135deg, var(--primary), #9B8BFF); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+/* ─── Document editor ───────────────────────────────────────────────────────── */
+.doc-section { @apply relative; }
+.doc-section-title { @apply text-xs font-bold uppercase tracking-widest text-slate-400 mb-3; }
+.doc-textarea {
+  @apply w-full bg-transparent outline-none resize-none text-slate-800 text-base leading-relaxed;
+  font-family: 'Inter', sans-serif;
+}
+
+/* ─── Ghost suggestion ──────────────────────────────────────────────────────── */
+.suggestion-card {
+  background: linear-gradient(135deg, rgba(109,93,252,0.04), rgba(155,139,255,0.04));
+  border: 1px solid rgba(109,93,252,0.15);
+  border-radius: var(--radius-lg);
+  border-left: 3px solid var(--primary);
+}
+
+/* ─── Command menu ──────────────────────────────────────────────────────────── */
+.command-menu {
+  background: white;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl), 0 0 0 1px rgba(0,0,0,0.05);
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 99px; }
+
+/* ─── ATS preview ───────────────────────────────────────────────────────────── */
+.ats-preview { font-family: 'Times New Roman', Times, serif; line-height: 1.5; }
+
+/* ─── Animations ─────────────────────────────────────────────────────────────── */
+@keyframes fade-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse-dot { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+@keyframes count-up { from { opacity: 0; } to { opacity: 1; } }
+
+.animate-fade-up { animation: fade-up 0.2s ease forwards; }
+.animate-pulse-dot { animation: pulse-dot 1.5s ease infinite; }

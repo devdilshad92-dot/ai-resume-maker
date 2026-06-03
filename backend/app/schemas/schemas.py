@@ -132,6 +132,7 @@ class SectionAISuggestionRequest(BaseModel):
     job_role: str
     experience_level: str
     industry: str
+    tone: Optional[str] = "Professional"
 
 
 class SectionAISuggestionResponse(BaseModel):
@@ -148,7 +149,7 @@ class JobRoleBase(BaseModel):
 
 
 class JobRoleResponse(JobRoleBase):
-    id: int
+    id: Optional[int] = None
 
     class Config:
         from_attributes = True

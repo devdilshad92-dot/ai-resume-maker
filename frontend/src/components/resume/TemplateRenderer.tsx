@@ -94,8 +94,8 @@ export const TemplateRenderer: React.FC<TemplateRendererProps> = ({ content, tem
                 <section className="mb-6">
                     {renderSectionHeader("Expertise & Skills")}
                     <div className="flex flex-wrap gap-x-4 gap-y-2">
-                        {content.skills.map((skill, i) => (
-                            <span key={i} className="text-sm">• {skill}</span>
+                        {content.skills.map((skill: any, i) => (
+                            <span key={i} className="text-sm">• {typeof skill === 'string' ? skill : skill?.name}</span>
                         ))}
                     </div>
                 </section>

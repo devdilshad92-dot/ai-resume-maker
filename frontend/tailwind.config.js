@@ -16,13 +16,13 @@ module.exports = {
         sans: ['Inter', 'sans-serif'],
       },
       colors: {
-        border: "hsl(var(--border))",
+        border: "hsl(var(--border-tw))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "hsl(var(--primary))",
+          DEFAULT: "hsl(var(--primary-tw))",
           foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
@@ -38,16 +38,16 @@ module.exports = {
           foreground: "hsl(var(--muted-foreground))",
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
+          DEFAULT: "hsl(var(--accent-tw))",
           foreground: "hsl(var(--accent-foreground))",
         },
-        success: { DEFAULT: "#10b981", foreground: "#ffffff" },
+        success: { DEFAULT: "#00C27A", foreground: "#ffffff" },
         warning: { DEFAULT: "#f59e0b", foreground: "#ffffff" },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        lg: "var(--radius-tw)",
+        md: "calc(var(--radius-tw) - 2px)",
+        sm: "calc(var(--radius-tw) - 4px)",
       },
     },
   },

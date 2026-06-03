@@ -42,6 +42,16 @@ async def create_user(
     return user
 
 
+@router.get("/me", response_model=UserResponse)
+async def read_current_user(
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Return the currently authenticated user.
+    """
+    return current_user
+
+
 @router.post("/login", response_model=Token)
 async def login_access_token(
     db: AsyncSession = Depends(get_db),

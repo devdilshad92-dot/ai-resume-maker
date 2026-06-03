@@ -27,11 +27,13 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     ANTHROPIC_API_KEY: str = ""
     OPENROUTER_API_KEY: str = ""
+    GROQ_API_KEY: str = ""
 
     # CORS
     BACKEND_CORS_ORIGINS: list[str] = [
         "http://localhost:5173",
         "http://localhost:3000",
+        "http://localhost:3001",
     ]
 
     class Config:

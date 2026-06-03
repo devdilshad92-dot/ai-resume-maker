@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -38,6 +38,13 @@ PROVIDER_MODELS: dict[str, list[str]] = {
         "meta-llama/llama-3.1-8b-instruct",
         "mistralai/mistral-7b-instruct",
     ],
+    "groq": [
+        "llama-3.3-70b-versatile",
+        "llama-3.1-8b-instant",
+        "llama3-70b-8192",
+        "mixtral-8x7b-32768",
+        "gemma2-9b-it",
+    ],
 }
 
 
@@ -47,6 +54,7 @@ def _configured_providers() -> dict[str, bool]:
         "openai": bool(settings.OPENAI_API_KEY),
         "anthropic": bool(settings.ANTHROPIC_API_KEY),
         "openrouter": bool(settings.OPENROUTER_API_KEY),
+        "groq": bool(settings.GROQ_API_KEY),
     }
 
 
@@ -87,13 +95,16 @@ async def update_ai_config(
     config.fallback_model = payload.fallbackModel
     await db.commit()
 
-    # Hot-reload the running service without restart
-    ai_service.configure(
-        primary_provider=payload.primaryProvider,
-        primary_model=payload.primaryModel,
-        fallback_provider=payload.fallbackProvider,
-        fallback_model=payload.fallbackModel,
-    )
+    # Hot-reload the running service — raises ValueError if API key missing
+    try:
+        ai_service.configure(
+            primary_provider=payload.primaryProvider,
+            primary_model=payload.primaryModel,
+            fallback_provider=payload.fallbackProvider,
+            fallback_model=payload.fallbackModel,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     return AIConfigResponse(
         primaryProvider=payload.primaryProvider,

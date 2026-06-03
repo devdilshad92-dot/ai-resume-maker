@@ -16,11 +16,12 @@ interface AIConfigResponse {
   availableModels: Record<string, string[]>;
 }
 
-const PROVIDER_META: Record<string, { label: string; color: string; description: string }> = {
+const PROVIDER_META: Record<string, { label: string; color: string; description: string; badge?: string }> = {
   gemini:     { label: 'Gemini',     color: 'blue',   description: 'Google DeepMind — fast, multimodal' },
   openai:     { label: 'OpenAI',     color: 'green',  description: 'GPT-4o and variants' },
   anthropic:  { label: 'Anthropic',  color: 'orange', description: 'Claude Opus, Sonnet, Haiku' },
   openrouter: { label: 'OpenRouter', color: 'purple', description: 'Unified API for 100+ models' },
+  groq:       { label: 'Groq',       color: 'teal',   description: 'Ultra-fast inference — 500K tokens/day free', badge: 'FREE' },
 };
 
 const colorMap: Record<string, string> = {
@@ -28,6 +29,7 @@ const colorMap: Record<string, string> = {
   green:  'bg-green-50 border-green-200 text-green-700',
   orange: 'bg-orange-50 border-orange-200 text-orange-700',
   purple: 'bg-purple-50 border-purple-200 text-purple-700',
+  teal:   'bg-teal-50 border-teal-200 text-teal-700',
 };
 
 const ringMap: Record<string, string> = {
@@ -35,6 +37,7 @@ const ringMap: Record<string, string> = {
   green:  'ring-green-500',
   orange: 'ring-orange-500',
   purple: 'ring-purple-500',
+  teal:   'ring-teal-500',
 };
 
 export default function AdminPanel() {
@@ -129,6 +132,7 @@ export default function AdminPanel() {
                   <div className="flex items-center gap-3">
                     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${colorMap[meta.color]}`}>{meta.label}</span>
                     <span className="text-sm text-slate-500">{meta.description}</span>
+                    {meta.badge && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">{meta.badge}</span>}
                   </div>
                   <div className="flex items-center gap-1.5 text-sm font-medium">
                     {configured[key] ? <><CheckCircle size={16} className="text-emerald-500" /><span className="text-emerald-600">Configured</span></> : <><XCircle size={16} className="text-slate-400" /><span className="text-slate-400">API key missing</span></>}
