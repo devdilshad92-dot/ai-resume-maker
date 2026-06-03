@@ -17,6 +17,7 @@ import { JobRoleAutocomplete } from '@/components/ui/JobRoleAutocomplete';
 import { TemplateGallery } from '@/components/resume/TemplateGallery';
 import { TemplateRenderer } from '@/components/resume/TemplateRenderer';
 import AuthGuard from '@/components/AuthGuard';
+import { overallScore, wordCount } from '@/lib/resumeInsights';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Skill { name: string; level: 'Beginner'|'Intermediate'|'Advanced'|'Expert'; years: number }
@@ -27,29 +28,9 @@ interface Toast { id: number; message: string; type: 'success'|'error'|'info' }
 interface InlineSuggestion { sectionId: string; content: any; tone: string }
 interface ImprovementResult { total: number; ats: number; impact: number; readability: number; sections: {id:string;name:string;before:number;after:number}[] }
 
-// ─── Scoring (compact) ────────────────────────────────────────────────────────
-const VERBS=['led','built','created','developed','designed','implemented','managed','launched','delivered','achieved','improved','increased','reduced','generated','spearheaded','optimized','streamlined','scaled','drove','founded','pioneered','automated','engineered','shipped','refactored','resolved','accelerated'];
-const WEAK=['responsible for','helped with','worked on','assisted with','involved in'];
-const METRICS=[/\d+\s*%/,/\$[\d,]+/,/\d+[xX]/,/\d+\+/,/\b[1-9]\d+\b/];
-function txt(c:any):string{if(!c)return '';if(typeof c==='string')return c;if(Array.isArray(c))return c.map(txt).join(' ');if(typeof c==='object')return Object.values(c).map(txt).join(' ');return String(c);}
-function wc(t:string){return t.trim()?t.trim().split(/\s+/).length:0;}
-function sc(id:string,c:any,role:string){
-    const t=txt(c).toLowerCase();
-    const vHits=Math.min(VERBS.filter(v=>t.includes(v)).length*8,40);
-    const rHits=role?Math.round((role.toLowerCase().split(/\s+/).filter(w=>w.length>3).filter(w=>t.includes(w)).length/Math.max(role.split(' ').length,1))*35):0;
-    const mHits=Math.min(METRICS.filter(p=>p.test(txt(c))).length*18,54);
-    const wHits=WEAK.filter(p=>t.includes(p)).length*12;
-    let content=0;
-    if(id==='summary'){const w=wc(typeof c==='string'?c:'');content=w<15?20:w<30?55:w<=80?100:w<=120?80:65;}
-    else if(id==='skills'){const n=Array.isArray(c)?c.length:0;content=n<3?30:n<6?60:n<10?85:100;}
-    else if(Array.isArray(c)&&c.length>0){content=Math.min(50+c.length*15,100);}
-    return {content,keywords:Math.max(0,Math.min(vHits+rHits,100)),impact:Math.max(0,Math.min(mHits+Math.min(VERBS.filter(v=>t.includes(v)).length*7,28)-wHits,100))};
-}
-function totalScore(parsed:any,role:string){
-    const ids=['summary','skills','work_experience','education','projects'];
-    const avg=ids.map(id=>{const q=sc(id,parsed?.[id],role);return(q.content+q.keywords+q.impact)/3;});
-    return Math.round(avg.reduce((a,b)=>a+b,0)/ids.length);
-}
+// ─── Scoring — canonical engine (see lib/resumeInsights.ts) ────────────────────
+const wc = wordCount;
+const totalScore = overallScore;
 function errMsg(e:any){const d=e?.response?.data?.detail,s=e?.response?.status;if(s===429)return d||'AI quota exceeded — retry in a moment.';if(s===503)return d||'AI unavailable — retry shortly.';return d||'AI request failed.';}
 
 // ─── Constants ────────────────────────────────────────────────────────────────

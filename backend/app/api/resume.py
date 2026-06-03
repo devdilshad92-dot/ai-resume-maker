@@ -16,7 +16,7 @@ from app.models.models import User, Resume, JobDescription, Application
 from app.schemas.schemas import (
     ResumeResponse, JobDescriptionResponse, ApplicationResponse, JobDescriptionCreate,
     ApplicationCreate, TemplateResponse, ResumeCreateScratch, ResumeUpdateSection,
-    SectionAISuggestionRequest, SectionAISuggestionResponse
+    SectionAISuggestionRequest, SectionAISuggestionResponse, ResumeInterviewRequest
 )
 from app.services.pdf import extract_text
 from app.services.ai_service import ai_service
@@ -145,6 +145,57 @@ async def create_resume_from_scratch(
             "education": [],
             "projects": []
         }
+    )
+    db.add(resume)
+    await db.commit()
+    await db.refresh(resume)
+    return resume
+
+
+@router.post("/ai-interview", response_model=ResumeResponse)
+async def create_resume_from_interview(
+    req: ResumeInterviewRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Flagship AI Interview Builder: turn conversational answers into a complete
+    structured resume draft and persist it.
+    """
+    try:
+        generated = await ai_service.generate_resume_from_interview(
+            answers=req.answers,
+            job_role=req.job_role,
+            experience_level=req.experience_level,
+            industry=req.industry,
+        )
+    except RetryError as e:
+        cause = str(e.last_attempt.exception()).lower()
+        if any(w in cause for w in ("quota", "exhausted", "rate limit", "billing")):
+            raise HTTPException(status_code=429, detail="AI quota exceeded. Please wait a moment and try again.")
+        raise HTTPException(status_code=503, detail="AI service unavailable. Please try again shortly.")
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"AI error: {str(e)[:120]}")
+
+    resume = Resume(
+        user_id=current_user.id,
+        template_id=req.template_id or "minimal-pro",
+        is_draft=True,
+        meta_data={
+            "job_role": req.job_role,
+            "experience_level": req.experience_level,
+            "industry": req.industry,
+            "source": "ai_interview",
+        },
+        parsed_content={
+            "full_name": current_user.full_name or "Your Name",
+            "contact_info": {"email": current_user.email},
+            "summary": generated.get("summary", ""),
+            "skills": generated.get("skills", []),
+            "work_experience": generated.get("work_experience", []),
+            "education": generated.get("education", []),
+            "projects": generated.get("projects", []),
+        },
     )
     db.add(resume)
     await db.commit()

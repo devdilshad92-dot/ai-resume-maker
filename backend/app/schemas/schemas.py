@@ -87,6 +87,14 @@ class ResumeUpdateSection(BaseModel):
     content: Any
 
 
+class ResumeInterviewRequest(BaseModel):
+    job_role: str
+    experience_level: str = "Mid"
+    industry: str = ""
+    answers: Dict[str, Any]  # interview question -> answer
+    template_id: Optional[str] = "minimal-pro"
+
+
 class ResumeResponse(BaseModel):
     id: int
     user_id: int

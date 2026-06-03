@@ -9,6 +9,10 @@ import {
 } from 'lucide-react';
 import api from '@/api/client';
 import AuthGuard from '@/components/AuthGuard';
+import {
+    readiness, atsScore, countMetrics,
+    missingSignals, percentileVsApplicants, potentialAtsGain,
+} from '@/lib/resumeInsights';
 
 export default function DashboardPage() {
     return <AuthGuard><CommandCenter /></AuthGuard>;
@@ -23,28 +27,6 @@ interface ResumeItem {
     created_at?: string;
 }
 
-// ─── Scoring ──────────────────────────────────────────────────────────────────
-const VERBS = ['led','built','created','developed','managed','launched','delivered','achieved','improved','increased','reduced','optimized','scaled','drove','engineered','designed','implemented','mentored','spearheaded'];
-const METRICS = [/\d+\s*%/,/\$[\d,]+/,/\d+[xX]/,/\d+\+/,/\b[1-9]\d+\b/];
-function txt(c: any): string { if(!c) return ''; if(typeof c==='string') return c; if(Array.isArray(c)) return c.map(txt).join(' '); if(typeof c==='object') return Object.values(c).map(txt).join(' '); return String(c); }
-function readiness(p: any): number {
-    if(!p) return 0;
-    let s = 0;
-    if((p.summary?.length||0) > 50) s += 25;
-    if((p.skills?.length||0) >= 3) s += 20;
-    if((p.work_experience?.length||0) > 0) s += 30;
-    if((p.education?.length||0) > 0) s += 10;
-    if((p.projects?.length||0) > 0) s += 15;
-    return Math.min(s, 100);
-}
-function atsScore(p: any): number {
-    const t = txt(p).toLowerCase();
-    if(!t.trim()) return 0;
-    const v = Math.min(VERBS.filter(x=>t.includes(x)).length*6, 50);
-    const m = Math.min(METRICS.filter(x=>x.test(txt(p))).length*12, 50);
-    return Math.min(v+m, 100);
-}
-function countMetrics(p: any): number { const t = txt(p); return METRICS.reduce((n,r)=> n + (r.test(t)?1:0), 0); }
 function greeting() { const h = new Date().getHours(); return h<12 ? 'Good morning' : h<18 ? 'Good afternoon' : 'Good evening'; }
 function timeAgo(iso?: string): string {
     if(!iso) return 'just now';
@@ -73,28 +55,23 @@ function CommandCenter() {
     const latest = resumes[0];
     const ready = readiness(latest?.parsed_content);
     const ats = atsScore(latest?.parsed_content);
-    const percentile = latest ? Math.min(95, Math.round(38 + ready*0.58)) : 0;
-    const atsGain = latest ? Math.min(Math.round((100-ats)*0.65), 24) : 0;
+    const percentile = latest ? percentileVsApplicants(ready) : 0;
+    const atsGain = latest ? potentialAtsGain(latest?.parsed_content) : 0;
 
+    // Hero command / Describe / suggestions → flagship AI Interview
     const run = (intent?: string) => {
         const v = (intent ?? command).trim();
         if(v) { try { sessionStorage.setItem('ai_intent', v); } catch {} }
-        router.push('/builder/scratch');
+        router.push('/builder/interview');
     };
     const fixEverything = () => { try { sessionStorage.setItem('auto_improve','1'); } catch {}; router.push(latest ? `/builder/scratch?id=${latest.id}` : '/builder/scratch'); };
     const logout = () => { try { localStorage.removeItem('token'); } catch {}; router.push('/login'); };
 
     const SUGGESTED = ['Create a DevOps resume', 'Optimize for Amazon', 'Create a PM resume', 'Improve my ATS score'];
 
-    // Missing-item derivation (grounded in actual content)
+    // Missing-item derivation (canonical engine)
     const p = latest?.parsed_content;
-    const missing: string[] = [];
-    if(latest){
-        if(countMetrics(p) < 2) missing.push('Quantifiable metrics');
-        if((p?.work_experience?.length||0) === 0 || !VERBS.some(v=>txt(p?.work_experience).toLowerCase().includes(v))) missing.push('Leadership impact');
-        if((p?.skills?.length||0) < 6) missing.push('Industry keywords');
-        if((p?.summary?.length||0) < 50) missing.push('Strong summary');
-    }
+    const missing: string[] = latest ? missingSignals(p) : [];
 
     // AI activity (grounded in real numbers, framed as achievements)
     const activity = latest ? [
@@ -142,9 +119,9 @@ function CommandCenter() {
                             {/* Workflow strip — one flow, not 3 cards */}
                             <div className="flex items-center gap-1 text-xs text-slate-400">
                                 <span className="hidden sm:inline mr-1">Start with</span>
-                                <button onClick={() => run('Paste a job description')} className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-slate-50 hover:text-slate-700 transition-colors"><Target size={12}/>Job Description</button>
+                                <button onClick={() => { try{sessionStorage.setItem('ai_entry','job');}catch{}; router.push('/builder/scratch'); }} className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-slate-50 hover:text-slate-700 transition-colors"><Target size={12}/>Job Description</button>
                                 <span className="text-slate-200">·</span>
-                                <button onClick={() => run('Describe yourself')} className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-slate-50 hover:text-slate-700 transition-colors"><Sparkles size={12}/>Describe</button>
+                                <button onClick={() => router.push('/builder/interview')} className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-slate-50 hover:text-slate-700 transition-colors"><Sparkles size={12}/>AI Interview</button>
                                 <span className="text-slate-200">·</span>
                                 <button onClick={() => router.push('/builder')} className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-slate-50 hover:text-slate-700 transition-colors"><Upload size={12}/>Upload</button>
                             </div>
