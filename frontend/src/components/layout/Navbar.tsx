@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { FileText, LogOut, User, Zap } from 'lucide-react';
+import { FileText, LogOut, User, Zap, Settings } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 export const Navbar = () => {
@@ -30,6 +30,10 @@ export const Navbar = () => {
                     >
                         <Zap size={16} className="mr-2 fill-yellow-400 text-yellow-100" />
                         Upgrade to Pro
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => navigate('/admin')}>
+                        <Settings size={18} className="mr-2" />
+                        Admin
                     </Button>
                     <Button variant="ghost" size="sm" onClick={() => navigate('/profile')}>
                         <User size={18} className="mr-2" />

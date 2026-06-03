@@ -9,11 +9,10 @@ python-jose[cryptography]
 passlib[bcrypt]
 bcrypt==4.0.1
 google-generativeai
-ollama
+openai
+anthropic
 python-docx
 pypdf
-celery
-redis
 httpx
 python-dotenv
 alembic

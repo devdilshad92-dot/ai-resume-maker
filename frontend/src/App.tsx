@@ -3,6 +3,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import ResumeBuilder from './pages/ResumeBuilder';
 import ResumeScratch from './pages/ResumeScratch';
+import AdminPanel from './pages/AdminPanel';
 import PrivateRoute from './components/PrivateRoute';
 
 function App() {
@@ -11,30 +12,10 @@ function App() {
       <div className="min-h-screen bg-slate-50 text-slate-900">
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route 
-            path="/" 
-            element={
-              <PrivateRoute>
-                <Dashboard />
-              </PrivateRoute>
-            } 
-          />
-          <Route 
-            path="/builder" 
-            element={
-              <PrivateRoute>
-                <ResumeBuilder />
-              </PrivateRoute>
-            } 
-          />
-          <Route 
-            path="/builder/scratch" 
-            element={
-              <PrivateRoute>
-                <ResumeScratch />
-              </PrivateRoute>
-            } 
-          />
+          <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+          <Route path="/builder" element={<PrivateRoute><ResumeBuilder /></PrivateRoute>} />
+          <Route path="/builder/scratch" element={<PrivateRoute><ResumeScratch /></PrivateRoute>} />
+          <Route path="/admin" element={<PrivateRoute><AdminPanel /></PrivateRoute>} />
         </Routes>
       </div>
     </Router>

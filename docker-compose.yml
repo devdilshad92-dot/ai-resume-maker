@@ -14,29 +14,17 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   backend:
-    build: 
+    build:
       context: ./backend
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
     env_file:
       - .env
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     depends_on:
       - db
-      - ollama
     volumes:
       - ./backend:/app
-    restart: always
-
-  ollama:
-    image: ollama/ollama:latest
-    container_name: ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
     restart: always
 
   frontend:
@@ -51,4 +39,3 @@ services:
 
 volumes:
   postgres_data:
-  ollama_data:

@@ -152,3 +152,20 @@ class JobRoleResponse(JobRoleBase):
 
     class Config:
         from_attributes = True
+
+
+# AI Config Schemas
+class AIConfigUpdate(BaseModel):
+    primaryProvider: str
+    primaryModel: str
+    fallbackProvider: Optional[str] = None
+    fallbackModel: Optional[str] = None
+
+
+class AIConfigResponse(BaseModel):
+    primaryProvider: str
+    primaryModel: str
+    fallbackProvider: Optional[str] = None
+    fallbackModel: Optional[str] = None
+    configuredProviders: Dict[str, bool]
+    availableModels: Dict[str, List[str]]

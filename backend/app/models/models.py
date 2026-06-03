@@ -82,7 +82,19 @@ class JobRole(Base):
     __tablename__ = "job_roles"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, index=True)  # e.g. "Software Engineer"
-    category = Column(String, index=True)  # e.g. "Tech"
-    popularity = Column(Integer, default=0)  # To sort frequent roles
+    name = Column(String, unique=True, index=True)
+    category = Column(String, index=True)
+    popularity = Column(Integer, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class AISettings(Base):
+    """Single-row table (id=1) storing the active AI provider/model config."""
+    __tablename__ = "ai_settings"
+
+    id = Column(Integer, primary_key=True, default=1)
+    primary_provider = Column(String, nullable=False, default="gemini")
+    primary_model = Column(String, nullable=False, default="gemini-2.5-flash")
+    fallback_provider = Column(String, nullable=True, default="gemini")
+    fallback_model = Column(String, nullable=True, default="gemini-2.5-flash-lite")
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
