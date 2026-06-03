@@ -1,3 +1,5 @@
+'use client';
+
 import { AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/Card';
 import { ATSFeedback } from '../../types';

@@ -4,7 +4,7 @@ from sqlalchemy import select
 
 from app.api.deps import get_current_user
 from app.core.config import settings
-from app.core.db import get_session
+from app.core.db import get_db
 from app.models.models import AISettings, User
 from app.schemas.schemas import AIConfigUpdate, AIConfigResponse
 from app.services.ai_service import ai_service
@@ -52,7 +52,7 @@ def _configured_providers() -> dict[str, bool]:
 
 @router.get("/ai-config", response_model=AIConfigResponse)
 async def get_ai_config(
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_user),
 ):
     result = await db.execute(select(AISettings).where(AISettings.id == 1))
@@ -71,7 +71,7 @@ async def get_ai_config(
 @router.put("/ai-config", response_model=AIConfigResponse)
 async def update_ai_config(
     payload: AIConfigUpdate,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_user),
 ):
     result = await db.execute(select(AISettings).where(AISettings.id == 1))

@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from 'react';
 import { Card, CardContent } from '../ui/Card';
 import { TemplateRenderer } from './TemplateRenderer';

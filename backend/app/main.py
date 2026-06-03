@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
 
 from app.core.config import settings
-from app.core.db import engine, Base, get_session
+from app.core.db import engine, Base, SessionLocal
 from app.api import auth, resume, job_roles
 from app.api import admin
 from app.models.models import AISettings
@@ -34,7 +34,7 @@ async def startup():
         await conn.run_sync(Base.metadata.create_all)
 
     # Load AI config from DB and wire up the service
-    async for db in get_session():
+    async with SessionLocal() as db:
         result = await db.execute(select(AISettings).where(AISettings.id == 1))
         config = result.scalar_one_or_none()
         if config:
@@ -44,7 +44,6 @@ async def startup():
                 fallback_provider=config.fallback_provider,
                 fallback_model=config.fallback_model,
             )
-        break  # only need one iteration
 
 
 @app.get("/")

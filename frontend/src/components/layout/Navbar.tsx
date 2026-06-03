@@ -1,20 +1,22 @@
-import { useNavigate } from 'react-router-dom';
+'use client';
+
+import { useRouter } from 'next/navigation';
 import { FileText, LogOut, User, Zap, Settings } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 export const Navbar = () => {
-    const navigate = useNavigate();
+    const router = useRouter();
     const handleLogout = () => {
         localStorage.removeItem('token');
-        navigate('/login');
+        router.push('/login');
     };
 
     return (
         <nav className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/80 backdrop-blur-md">
             <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-                <div 
-                    className="flex items-center gap-2 cursor-pointer" 
-                    onClick={() => navigate('/')}
+                <div
+                    className="flex items-center gap-2 cursor-pointer"
+                    onClick={() => router.push('/')}
                 >
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white">
                         <FileText size={20} className="stroke-[2.5]" />
@@ -31,11 +33,11 @@ export const Navbar = () => {
                         <Zap size={16} className="mr-2 fill-yellow-400 text-yellow-100" />
                         Upgrade to Pro
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => navigate('/admin')}>
+                    <Button variant="ghost" size="sm" onClick={() => router.push('/admin')}>
                         <Settings size={18} className="mr-2" />
                         Admin
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => navigate('/profile')}>
+                    <Button variant="ghost" size="sm" onClick={() => router.push('/profile')}>
                         <User size={18} className="mr-2" />
                         Account
                     </Button>
