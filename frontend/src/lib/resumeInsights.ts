@@ -258,3 +258,51 @@ export function keywordGaps(p: ResumeContent | undefined | null, jobDescription:
     const score = Math.round((matched.length / jdKeywords.length) * 100);
     return { matched, missing: missing.slice(0, 12), score };
 }
+
+/**
+ * Full numeric Job Match report — deterministic, instant (no AI).
+ * The AI layer supplies the qualitative extraction / recruiter view separately.
+ */
+export interface JobMatchReport {
+    match: number;
+    keywordCoverage: number;
+    leadershipMatch: number;
+    technicalMatch: number;
+    experienceMatch: number;
+    atsCompatibility: number;
+    percentile: number;
+    potentialGain: number;
+    matchedKeywords: string[];
+    missingKeywords: string[];
+}
+export function jobMatchReport(p: ResumeContent | undefined | null, jobDescription: string, jobRole = ''): JobMatchReport {
+    const gap = keywordGaps(p, jobDescription);
+    const jdLower = jobDescription.toLowerCase();
+    const resumeLower = textOf(p).toLowerCase();
+
+    // Leadership match: how much of the JD's leadership demand the resume meets
+    const jdLeadership = LEADERSHIP_SIGNALS.filter(s => jdLower.includes(s));
+    const metLeadership = jdLeadership.filter(s => resumeLower.includes(s));
+    const leadershipMatch = jdLeadership.length
+        ? Math.round((metLeadership.length / jdLeadership.length) * 100)
+        : leadershipScore(p);
+
+    // Technical match ~ keyword coverage weighted toward tech-looking tokens
+    const technicalMatch = gap.score;
+
+    // Experience match from completeness of work history
+    const experienceMatch = Math.min(readiness(p), 100);
+
+    return {
+        match: gap.score,
+        keywordCoverage: gap.score,
+        leadershipMatch,
+        technicalMatch,
+        experienceMatch,
+        atsCompatibility: atsScore(p),
+        percentile: percentileVsApplicants(gap.score),
+        potentialGain: Math.min(100 - gap.score, 30),
+        matchedKeywords: gap.matched.slice(0, 16),
+        missingKeywords: gap.missing,
+    };
+}

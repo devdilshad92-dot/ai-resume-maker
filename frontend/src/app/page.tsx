@@ -58,13 +58,15 @@ function CommandCenter() {
     const percentile = latest ? percentileVsApplicants(ready) : 0;
     const atsGain = latest ? potentialAtsGain(latest?.parsed_content) : 0;
 
-    // Hero command / Describe / suggestions → flagship AI Interview
+    // Smart routing: "optimize/tailor for X" → Job Match Studio; else → AI Interview
     const run = (intent?: string) => {
         const v = (intent ?? command).trim();
+        const wantsMatch = /optimi[sz]e|tailor|match|\bfor (amazon|google|microsoft|meta|apple|netflix)/i.test(v);
+        if (wantsMatch && latest) { router.push(`/match?id=${latest.id}`); return; }
         if(v) { try { sessionStorage.setItem('ai_intent', v); } catch {} }
         router.push('/builder/interview');
     };
-    const fixEverything = () => { try { sessionStorage.setItem('auto_improve','1'); } catch {}; router.push(latest ? `/builder/scratch?id=${latest.id}` : '/builder/scratch'); };
+    const fixEverything = () => { router.push(latest ? `/health?id=${latest.id}` : '/builder/scratch'); };
     const logout = () => { try { localStorage.removeItem('token'); } catch {}; router.push('/login'); };
 
     const SUGGESTED = ['Create a DevOps resume', 'Optimize for Amazon', 'Create a PM resume', 'Improve my ATS score'];
@@ -119,7 +121,7 @@ function CommandCenter() {
                             {/* Workflow strip — one flow, not 3 cards */}
                             <div className="flex items-center gap-1 text-xs text-slate-400">
                                 <span className="hidden sm:inline mr-1">Start with</span>
-                                <button onClick={() => { try{sessionStorage.setItem('ai_entry','job');}catch{}; router.push('/builder/scratch'); }} className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-slate-50 hover:text-slate-700 transition-colors"><Target size={12}/>Job Description</button>
+                                <button onClick={() => router.push(latest ? `/match?id=${latest.id}` : '/builder/interview')} className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-slate-50 hover:text-slate-700 transition-colors"><Target size={12}/>Job Description</button>
                                 <span className="text-slate-200">·</span>
                                 <button onClick={() => router.push('/builder/interview')} className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-slate-50 hover:text-slate-700 transition-colors"><Sparkles size={12}/>AI Interview</button>
                                 <span className="text-slate-200">·</span>
@@ -203,11 +205,11 @@ function CommandCenter() {
                                     const mc = countMetrics(r.parsed_content);
                                     const lastImp = mc > 0 ? 'Added measurable achievements' : (r.parsed_content?.summary?.length>50 ? 'Optimized professional summary' : 'Draft started');
                                     return (
-                                        <button key={r.id} onClick={() => router.push(`/builder/scratch?id=${r.id}`)} className="w-full text-left p-5 surface hover:-translate-y-0.5 transition-all group flex items-center gap-5">
+                                        <div key={r.id} className="w-full p-5 surface hover:-translate-y-0.5 transition-all group flex items-center gap-5">
                                             <div className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0" style={{ background: 'var(--primary-light)' }}>
                                                 <FileText size={18} style={{ color: 'var(--primary)' }} />
                                             </div>
-                                            <div className="flex-1 min-w-0">
+                                            <div className="flex-1 min-w-0 cursor-pointer" onClick={() => router.push(`/builder/scratch?id=${r.id}`)}>
                                                 <h3 className="font-bold text-slate-800 truncate">{r.meta_data?.job_role || 'Untitled'} Resume</h3>
                                                 <div className="flex items-center gap-4 mt-1.5">
                                                     <span className="text-xs font-semibold" style={{ color: 'var(--success)' }}>ATS {a}%</span>
@@ -216,10 +218,16 @@ function CommandCenter() {
                                                 </div>
                                                 <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-1"><Sparkles size={9} style={{ color: 'var(--primary)' }}/> Last AI improvement: {lastImp}</p>
                                             </div>
-                                            <span className="flex items-center gap-1 text-sm font-bold shrink-0 transition-transform group-hover:translate-x-1" style={{ color: 'var(--primary)' }}>
+                                            <button onClick={() => router.push(`/match?id=${r.id}`)} className="flex items-center gap-1 text-xs font-bold shrink-0 px-3 py-1.5 rounded-lg transition-colors hover:bg-violet-50" style={{ color: 'var(--primary)' }} title="Job Match Studio">
+                                                <Target size={13} /> Match
+                                            </button>
+                                            <button onClick={() => router.push(`/health?id=${r.id}`)} className="flex items-center gap-1 text-xs font-bold shrink-0 px-3 py-1.5 rounded-lg transition-colors hover:bg-violet-50" style={{ color: 'var(--primary)' }} title="Resume Health Center">
+                                                <Zap size={13} /> Health
+                                            </button>
+                                            <button onClick={() => router.push(`/builder/scratch?id=${r.id}`)} className="flex items-center gap-1 text-sm font-bold shrink-0 transition-transform group-hover:translate-x-1" style={{ color: 'var(--primary)' }}>
                                                 Continue <ArrowRight size={14} />
-                                            </span>
-                                        </button>
+                                            </button>
+                                        </div>
                                     );
                                 })}
                             </div>

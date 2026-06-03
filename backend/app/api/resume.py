@@ -16,7 +16,8 @@ from app.models.models import User, Resume, JobDescription, Application
 from app.schemas.schemas import (
     ResumeResponse, JobDescriptionResponse, ApplicationResponse, JobDescriptionCreate,
     ApplicationCreate, TemplateResponse, ResumeCreateScratch, ResumeUpdateSection,
-    SectionAISuggestionRequest, SectionAISuggestionResponse, ResumeInterviewRequest
+    SectionAISuggestionRequest, SectionAISuggestionResponse, ResumeInterviewRequest,
+    HealthImproveRequest, HealthImproveResponse, BulkApplyRequest, JobAnalyzeRequest
 )
 from app.services.pdf import extract_text
 from app.services.ai_service import ai_service
@@ -221,6 +222,108 @@ async def update_resume_section(
     resume.parsed_content = new_content
     resume.version += 1
 
+    db.add(resume)
+    await db.commit()
+    await db.refresh(resume)
+    return resume
+
+
+async def _owned_resume(resume_id: int, db: AsyncSession, current_user: User) -> Resume:
+    result = await db.execute(select(Resume).where(Resume.id == resume_id, Resume.user_id == current_user.id))
+    resume = result.scalars().first()
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found")
+    return resume
+
+
+@router.post("/{resume_id}/health-improve", response_model=HealthImproveResponse)
+async def health_improve(
+    resume_id: int,
+    req: HealthImproveRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Resume Health Center: AI rewrites the whole resume and returns before/after
+    (WITHOUT saving) so the user can review the transformation, then apply.
+    Pass job_description to tailor (Job Match Studio's "Tailor For This Job").
+    """
+    resume = await _owned_resume(resume_id, db, current_user)
+    meta = resume.meta_data or {}
+    try:
+        after = await ai_service.improve_full_resume(
+            parsed_content=resume.parsed_content or {},
+            job_role=meta.get("job_role", ""),
+            experience_level=meta.get("experience_level", "Mid"),
+            industry=meta.get("industry", ""),
+            job_description=req.job_description or "",
+        )
+    except RetryError as e:
+        cause = str(e.last_attempt.exception()).lower()
+        if any(w in cause for w in ("quota", "exhausted", "rate limit", "billing")):
+            raise HTTPException(status_code=429, detail="AI quota exceeded. Please wait a moment and try again.")
+        raise HTTPException(status_code=503, detail="AI service unavailable. Please try again shortly.")
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"AI error: {str(e)[:120]}")
+
+    pc = resume.parsed_content or {}
+    before = {
+        "summary": pc.get("summary", ""),
+        "skills": pc.get("skills", []),
+        "work_experience": pc.get("work_experience", []),
+        "projects": pc.get("projects", []),
+    }
+    return {"before": before, "after": after}
+
+
+@router.post("/{resume_id}/job-analyze")
+async def job_analyze(
+    resume_id: int,
+    req: JobAnalyzeRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Job Match Studio: AI extracts JD requirements, explains gaps, and gives a
+    recruiter's perspective. Numeric match scores are computed on the client.
+    """
+    resume = await _owned_resume(resume_id, db, current_user)
+    meta = resume.meta_data or {}
+    try:
+        return await ai_service.analyze_job_match(
+            parsed_content=resume.parsed_content or {},
+            job_description=req.job_description,
+            job_role=meta.get("job_role", ""),
+            experience_level=meta.get("experience_level", "Mid"),
+            company=req.company or "",
+        )
+    except RetryError as e:
+        cause = str(e.last_attempt.exception()).lower()
+        if any(w in cause for w in ("quota", "exhausted", "rate limit", "billing")):
+            raise HTTPException(status_code=429, detail="AI quota exceeded. Please wait a moment and try again.")
+        raise HTTPException(status_code=503, detail="AI service unavailable. Please try again shortly.")
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"AI error: {str(e)[:120]}")
+
+
+@router.patch("/{resume_id}/bulk-apply", response_model=ResumeResponse)
+async def bulk_apply(
+    resume_id: int,
+    req: BulkApplyRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Atomically merge multiple improved sections into the resume (used by
+    "Apply All Improvements" in the Health Center / Job Match Studio).
+    """
+    resume = await _owned_resume(resume_id, db, current_user)
+    new_content = dict(resume.parsed_content or {})
+    for key in ("summary", "skills", "work_experience", "projects", "education"):
+        if key in req.content and req.content[key] is not None:
+            new_content[key] = req.content[key]
+    resume.parsed_content = new_content
+    resume.version += 1
     db.add(resume)
     await db.commit()
     await db.refresh(resume)

@@ -191,10 +191,10 @@ function ResumeScratch(){
     return(
         <div className="h-screen flex flex-col overflow-hidden" style={{background:'var(--bg)'}}>
             {/* Minimal top bar */}
-            <TopBar router={router} setupData={setupData} saving={saving} lastSaved={lastSaved} score={score} showPreview={showPreview} setShowPreview={setShowPreview} onImproveAll={improveAll} improving={improving} onCommand={()=>setCommandOpen(true)} onChat={()=>setChatOpen(p=>!p)} />
+            <TopBar router={router} setupData={setupData} saving={saving} lastSaved={lastSaved} score={score} showPreview={showPreview} setShowPreview={setShowPreview} onImproveAll={improveAll} improving={improving} onCommand={()=>setCommandOpen(true)} onChat={()=>setChatOpen(p=>!p)} onHealth={resume?()=>router.push(`/health?id=${resume.id}`):undefined} />
 
             {/* Job targeting banner */}
-            <JobTargetBanner jobOpen={jobOpen} setJobOpen={setJobOpen} jobDesc={jobDesc} setJobDesc={setJobDesc} jobMatch={jobMatch} analyzingJob={analyzingJob} analyzeJob={analyzeJob} />
+            <JobTargetBanner jobOpen={jobOpen} setJobOpen={setJobOpen} jobDesc={jobDesc} setJobDesc={setJobDesc} jobMatch={jobMatch} analyzingJob={analyzingJob} analyzeJob={analyzeJob} onOpenStudio={(jd:string)=>{ try{sessionStorage.setItem('match_jd',jd);}catch{}; if(resume) router.push(`/match?id=${resume.id}`); }} />
 
             {/* Main workspace */}
             <div className="flex flex-1 overflow-hidden gap-0">
@@ -262,7 +262,7 @@ function ResumeScratch(){
 }
 
 // ─── Top Bar ──────────────────────────────────────────────────────────────────
-function TopBar({router,setupData,saving,lastSaved,score,showPreview,setShowPreview,onImproveAll,improving,onCommand,onChat}:any){
+function TopBar({router,setupData,saving,lastSaved,score,showPreview,setShowPreview,onImproveAll,improving,onCommand,onChat,onHealth}:any){
     return(
         <div className="h-12 flex items-center px-4 gap-3 shrink-0 border-b" style={{background:'white',borderColor:'var(--border)'}}>
             <button onClick={()=>router.push('/')} className="flex items-center gap-1.5 text-slate-400 hover:text-slate-700 transition-colors text-sm">
@@ -292,6 +292,11 @@ function TopBar({router,setupData,saving,lastSaved,score,showPreview,setShowPrev
             <button onClick={()=>setShowPreview((p:boolean)=>!p)} className="btn-ghost flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl">
                 {showPreview?<EyeOff size={13}/>:<Eye size={13}/>}Preview
             </button>
+            {onHealth && (
+                <button onClick={onHealth} className="btn-ghost flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl">
+                    <Zap size={13}/>Health
+                </button>
+            )}
             <button onClick={onImproveAll} disabled={improving} className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50" style={{background:'var(--primary)'}}>
                 {improving?<><RefreshCw size={12} className="animate-spin"/>Improving…</>:<><Wand2 size={12}/>✨ Improve All</>}
             </button>
@@ -300,7 +305,7 @@ function TopBar({router,setupData,saving,lastSaved,score,showPreview,setShowPrev
 }
 
 // ─── Job Target Banner ────────────────────────────────────────────────────────
-function JobTargetBanner({jobOpen,setJobOpen,jobDesc,setJobDesc,jobMatch,analyzingJob,analyzeJob}:any){
+function JobTargetBanner({jobOpen,setJobOpen,jobDesc,setJobDesc,jobMatch,analyzingJob,analyzeJob,onOpenStudio}:any){
     return(
         <div className="border-b shrink-0" style={{borderColor:'var(--border)',background:'white'}}>
             <button onClick={()=>setJobOpen((p:boolean)=>!p)} className="w-full flex items-center gap-3 px-6 py-2.5 text-left hover:bg-slate-50 transition-colors">
@@ -315,8 +320,11 @@ function JobTargetBanner({jobOpen,setJobOpen,jobDesc,setJobDesc,jobMatch,analyzi
                         <div className="px-6 pb-4 pt-1 flex gap-4 items-start">
                             <textarea className="flex-1 text-sm bg-slate-50 border rounded-2xl p-3 outline-none focus:border-indigo-300 resize-none h-24 text-slate-700 placeholder-slate-400" style={{borderColor:'var(--border)',borderRadius:'14px'}} placeholder="Paste the job description here — AI will extract keywords, calculate your match score, and suggest improvements…" value={jobDesc} onChange={e=>setJobDesc(e.target.value)}/>
                             <div className="flex flex-col gap-2 shrink-0">
-                                <button onClick={analyzeJob} disabled={analyzingJob||!jobDesc.trim()} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white disabled:opacity-40 transition-all hover:opacity-90" style={{background:'var(--primary)'}}>
-                                    {analyzingJob?<><RefreshCw size={11} className="animate-spin"/>Analyzing…</>:<><Search size={11}/>Analyze</>}
+                                <button onClick={()=>onOpenStudio?.(jobDesc)} disabled={!jobDesc.trim()} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white disabled:opacity-40 transition-all hover:opacity-90 whitespace-nowrap" style={{background:'var(--primary)'}}>
+                                    <Target size={11}/>Open Studio →
+                                </button>
+                                <button onClick={analyzeJob} disabled={analyzingJob||!jobDesc.trim()} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold border transition-all disabled:opacity-40 hover:bg-slate-50" style={{borderColor:'var(--border)',color:'var(--primary)'}}>
+                                    {analyzingJob?<><RefreshCw size={11} className="animate-spin"/>Quick…</>:<><Search size={11}/>Quick check</>}
                                 </button>
                                 {jobMatch&&(
                                     <div className="text-center">

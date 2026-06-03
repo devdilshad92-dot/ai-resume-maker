@@ -95,6 +95,24 @@ class ResumeInterviewRequest(BaseModel):
     template_id: Optional[str] = "minimal-pro"
 
 
+class HealthImproveRequest(BaseModel):
+    job_description: Optional[str] = ""  # optional: tailor while improving
+
+
+class HealthImproveResponse(BaseModel):
+    before: Dict[str, Any]
+    after: Dict[str, Any]
+
+
+class BulkApplyRequest(BaseModel):
+    content: Dict[str, Any]  # partial parsed_content to merge & save
+
+
+class JobAnalyzeRequest(BaseModel):
+    job_description: str
+    company: Optional[str] = ""  # future: company-specific optimization presets
+
+
 class ResumeResponse(BaseModel):
     id: int
     user_id: int
