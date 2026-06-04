@@ -138,7 +138,7 @@ export default function LandingPage() {
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
                         <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold mb-8"
                             style={{ background: 'rgba(109,93,252,0.2)', color: '#A89BFF', border: '1px solid rgba(109,93,252,0.3)' }}>
-                            <Sparkles size={11} /> Powered by Gemini 2.5 Flash &amp; Multi-Provider AI
+                            <Sparkles size={11} /> AI-Powered Resume Builder
                         </span>
                         <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight text-white leading-[1.05] mb-7">
                             Your Resume,<br />
@@ -386,7 +386,7 @@ export default function LandingPage() {
                     </div>
                     <div className="border-t pt-8 flex flex-col sm:flex-row items-center justify-between gap-4" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
                         <p className="text-white/30 text-sm">© 2025 ResumeAI. All rights reserved.</p>
-                        <p className="text-white/20 text-xs">Built with Gemini 2.5 Flash · FastAPI · Next.js</p>
+                        <p className="text-white/20 text-xs">Built with FastAPI · Next.js</p>
                     </div>
                 </div>
             </footer>
