@@ -82,7 +82,9 @@ export default function LandingPage() {
         return () => window.removeEventListener('scroll', fn);
     }, [router]);
 
-    const goStart = () => router.push('/login');
+    // Value-first: send users directly to the AI Interview Builder.
+    // No login required — they get a guest session automatically.
+    const goStart = () => router.push('/builder/interview');
 
     return (
         <div style={{ fontFamily: "'Inter', sans-serif", background: '#fff', color: '#1E293B' }}>
@@ -103,10 +105,10 @@ export default function LandingPage() {
                     </div>
                     <div className="flex-1" />
                     <div className="hidden md:flex items-center gap-3">
-                        <button onClick={() => router.push('/login')} className="text-sm font-semibold text-white/70 hover:text-white transition-colors">Log In</button>
+                        <button onClick={() => router.push('/login')} className="text-sm font-semibold text-white/70 hover:text-white transition-colors">Sign In</button>
                         <button onClick={goStart} className="px-4 py-2 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-95"
                             style={{ background: P, boxShadow: `0 4px 14px rgba(109,93,252,0.45)` }}>
-                            Start Free
+                            Try Free — No Sign-In
                         </button>
                     </div>
                     <button className="md:hidden text-white/70 hover:text-white" onClick={() => setMenuOpen(v => !v)}>
@@ -151,14 +153,14 @@ export default function LandingPage() {
                             <button onClick={goStart}
                                 className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-black text-base text-white transition-all hover:scale-[1.03] active:scale-[0.98]"
                                 style={{ background: P, boxShadow: '0 12px 32px rgba(109,93,252,0.5)' }}>
-                                Start Free <ArrowRight size={17} />
+                                Build My Resume — Free <ArrowRight size={17} />
                             </button>
                             <a href="#demo" className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-bold text-sm text-white/80 transition-all hover:text-white hover:bg-white/8"
                                 style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
                                 See How It Works
                             </a>
                         </div>
-                        <p className="mt-5 text-sm text-white/35">No credit card required · Free forever plan · 5 min to first resume</p>
+                        <p className="mt-5 text-sm text-white/35">No account required to start · Sign in only to save &amp; export</p>
                     </motion.div>
 
                     {/* Browser mockup */}

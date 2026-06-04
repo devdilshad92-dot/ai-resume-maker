@@ -29,6 +29,15 @@ class Settings(BaseSettings):
     OPENROUTER_API_KEY: str = ""
     GROQ_API_KEY: str = ""
 
+    # Google OAuth
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    BACKEND_URL: str = "http://localhost:8000"
+    FRONTEND_URL: str = "http://localhost:3000"
+
+    # Session length for OAuth users (days)
+    ACCESS_TOKEN_EXPIRE_DAYS: int = 30
+
     # CORS
     BACKEND_CORS_ORIGINS: list[str] = [
         "http://localhost:5173",

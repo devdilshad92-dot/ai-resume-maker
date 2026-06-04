@@ -1,56 +1,81 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ArrowRight, Eye, EyeOff, ArrowLeft } from 'lucide-react';
-import api from '@/api/client';
+import { Sparkles, ArrowRight, AlertCircle } from 'lucide-react';
+import { saveGuestTokenForMigration } from '@/lib/session';
 
-export default function LoginPage() {
-    const [isLogin, setIsLogin] = useState(true);
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [fullName, setFullName] = useState('');
-    const [showPwd, setShowPwd] = useState(false);
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
-    const [loading, setLoading] = useState(false);
+const BACKEND = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ?? 'http://localhost:8000';
+const API     = `${BACKEND}/api/v1`;
+
+// Google's official brand color + SVG logo
+const GOOGLE_BLUE = '#4285F4';
+function GoogleIcon() {
+    return (
+        <svg width="20" height="20" viewBox="0 0 48 48" fill="none">
+            <path d="M47.532 24.552c0-1.636-.132-3.196-.388-4.692H24v9.206h13.14c-.576 3.016-2.276 5.572-4.828 7.28v6.04h7.808c4.568-4.208 7.412-10.408 7.412-17.834z" fill="#4285F4"/>
+            <path d="M24 48c6.576 0 12.1-2.176 16.12-5.904l-7.808-6.04c-2.176 1.456-4.956 2.32-8.312 2.32-6.388 0-11.804-4.312-13.744-10.108H2.196v6.24C6.196 42.696 14.536 48 24 48z" fill="#34A853"/>
+            <path d="M10.256 28.268A14.817 14.817 0 0 1 9.44 24c0-1.48.256-2.916.696-4.268v-6.24H2.196A23.998 23.998 0 0 0 0 24c0 3.876.928 7.544 2.196 10.508l8.06-6.24z" fill="#FBBC05"/>
+            <path d="M24 9.624c3.604 0 6.836 1.24 9.38 3.668l6.98-6.98C36.096 2.396 30.572 0 24 0 14.536 0 6.196 5.304 2.196 13.492l8.06 6.24C12.196 13.936 17.612 9.624 24 9.624z" fill="#EA4335"/>
+        </svg>
+    );
+}
+
+function LoginContent() {
     const router = useRouter();
+    const params = useSearchParams();
+    const next   = params.get('next') || '/dashboard';
+    const errorParam = params.get('error');
 
-    const submit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError(''); setSuccess(''); setLoading(true);
+    const [authed, setAuthed] = useState(false);
+    const [hovering, setHovering] = useState(false);
+
+    useEffect(() => {
         try {
-            if (isLogin) {
-                const fd = new FormData();
-                fd.append('username', email);
-                fd.append('password', password);
-                const res = await api.post('/auth/login', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-                localStorage.setItem('token', res.data.access_token);
-                router.push('/dashboard');
-            } else {
-                await api.post('/auth/signup', { email, password, full_name: fullName });
-                setSuccess('Account created! Sign in below.');
-                setIsLogin(true);
+            const token   = localStorage.getItem('token');
+            const isGuest = localStorage.getItem('is_guest') === 'true';
+            // Only auto-redirect real (non-guest) users — guests visit this page to upgrade
+            if (token && !isGuest) {
+                setAuthed(true);
+                router.replace('/dashboard');
             }
-        } catch (err: any) {
-            setError(err.response?.data?.detail || 'Something went wrong. Please try again.');
-        } finally { setLoading(false); }
+        } catch {}
+    }, [router]);
+
+    // Save guest token THEN redirect — so migration can happen after sign-in
+    const handleSignIn = () => {
+        saveGuestTokenForMigration();
+        window.location.href = `${API}/auth/google?next=${encodeURIComponent(next)}`;
     };
+
+    const errorMessages: Record<string, string> = {
+        auth_failed:    'Sign-in failed. Please try again.',
+        access_denied:  'Access was denied. Please allow permissions to continue.',
+    };
+    const errorMsg = errorParam ? (errorMessages[errorParam] ?? 'Something went wrong. Please try again.') : null;
+
+    if (authed) return null;
 
     return (
         <div className="min-h-screen flex" style={{ background: '#07061A' }}>
-            {/* Left: branding panel */}
-            <div className="hidden lg:flex flex-col justify-between w-[46%] p-14"
+
+            {/* ── Left branding panel (lg+) ─────────────────────────── */}
+            <div className="hidden lg:flex flex-col justify-between w-[46%] p-14 relative overflow-hidden"
                 style={{ background: 'linear-gradient(135deg, #0D0B21 0%, #1A0F3C 100%)', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
-                <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => router.push('/')}>
+                <div className="absolute -right-24 -top-24 w-72 h-72 rounded-full opacity-10"
+                    style={{ background: 'radial-gradient(circle, #6D5DFC, transparent)' }} />
+                <div className="absolute -left-16 -bottom-16 w-56 h-56 rounded-full opacity-8"
+                    style={{ background: 'radial-gradient(circle, #00D4FF, transparent)' }} />
+
+                <div className="relative flex items-center gap-2.5 cursor-pointer" onClick={() => router.push('/')}>
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#6D5DFC' }}>
                         <Sparkles size={17} className="text-white" />
                     </div>
                     <span className="font-black text-white text-xl tracking-tight">ResumeAI</span>
                 </div>
 
-                <div>
+                <div className="relative">
                     <p className="text-5xl font-black text-white leading-[1.1] mb-6">
                         Build the resume<br />
                         <span style={{ background: 'linear-gradient(135deg, #A89BFF, #00D4FF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
@@ -58,124 +83,108 @@ export default function LoginPage() {
                         </span>
                     </p>
                     <p className="text-white/50 text-lg leading-relaxed mb-10">
-                        AI Interview Builder, ATS Optimizer, Job Match Studio,<br />and Career Intelligence — all in one platform.
+                        AI Interview Builder · ATS Optimizer<br />
+                        Job Match · Career Intelligence
                     </p>
-
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                         {[
-                            { stat: '10K+', label: 'Resumes built with ResumeAI' },
-                            { stat: '47%', label: 'More interview callbacks on average' },
-                            { stat: '5 min', label: 'From blank page to a complete resume' },
+                            { stat: '10K+', label: 'Resumes built' },
+                            { stat: '47%',  label: 'More interview callbacks' },
+                            { stat: '5 min',label: 'From blank page to complete resume' },
                         ].map(s => (
                             <div key={s.stat} className="flex items-center gap-4">
-                                <span className="text-2xl font-black w-16" style={{ color: '#A89BFF' }}>{s.stat}</span>
-                                <span className="text-white/50 text-sm">{s.label}</span>
+                                <span className="text-2xl font-black w-16 shrink-0" style={{ color: '#A89BFF' }}>{s.stat}</span>
+                                <span className="text-white/45 text-sm">{s.label}</span>
                             </div>
                         ))}
                     </div>
                 </div>
 
-                <p className="text-white/20 text-sm">© 2025 ResumeAI. All rights reserved.</p>
+                <p className="relative text-white/20 text-xs">© 2025 ResumeAI. All rights reserved.</p>
             </div>
 
-            {/* Right: form panel */}
+            {/* ── Right: sign-in panel ───────────────────────────────── */}
             <div className="flex-1 flex flex-col items-center justify-center px-6 py-16 relative">
-                <button onClick={() => router.push('/')} className="absolute top-6 left-6 flex items-center gap-1.5 text-white/40 hover:text-white/70 transition-colors text-sm lg:hidden">
-                    <ArrowLeft size={15} /> Back
-                </button>
 
-                <div className="w-full max-w-md">
-                    {/* Mobile logo */}
-                    <div className="flex items-center justify-center gap-2 mb-10 lg:hidden">
-                        <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: '#6D5DFC' }}>
-                            <Sparkles size={15} className="text-white" />
-                        </div>
-                        <span className="font-black text-white text-lg">ResumeAI</span>
+                {/* Mobile logo */}
+                <div className="flex items-center gap-2 mb-12 lg:hidden cursor-pointer" onClick={() => router.push('/')}>
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: '#6D5DFC' }}>
+                        <Sparkles size={15} className="text-white" />
                     </div>
-
-                    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-                        <h1 className="text-3xl font-black text-white mb-1.5">
-                            {isLogin ? 'Welcome back' : 'Create your account'}
-                        </h1>
-                        <p className="text-white/40 mb-8">
-                            {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
-                            <button onClick={() => { setIsLogin(v => !v); setError(''); setSuccess(''); }}
-                                className="font-semibold hover:underline transition-colors" style={{ color: '#A89BFF' }}>
-                                {isLogin ? 'Sign up free' : 'Sign in'}
-                            </button>
-                        </p>
-
-                        <AnimatePresence>
-                            {error && (
-                                <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                                    className="mb-5 px-4 py-3 rounded-xl text-sm font-medium"
-                                    style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#FCA5A5' }}>
-                                    {error}
-                                </motion.div>
-                            )}
-                            {success && (
-                                <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                                    className="mb-5 px-4 py-3 rounded-xl text-sm font-medium"
-                                    style={{ background: 'rgba(0,194,122,0.1)', border: '1px solid rgba(0,194,122,0.25)', color: '#6EE7B7' }}>
-                                    {success}
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-
-                        <form onSubmit={submit} className="space-y-4">
-                            <AnimatePresence>
-                                {!isLogin && (
-                                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
-                                        <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: 'rgba(255,255,255,0.45)' }}>Full Name</label>
-                                        <input value={fullName} onChange={e => setFullName(e.target.value)} required={!isLogin}
-                                            placeholder="Jane Smith"
-                                            className="w-full px-4 py-3.5 rounded-xl text-sm text-white placeholder-white/25 outline-none transition-all"
-                                            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }} />
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-
-                            <div>
-                                <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: 'rgba(255,255,255,0.45)' }}>Email</label>
-                                <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
-                                    placeholder="you@company.com" autoComplete="email"
-                                    className="w-full px-4 py-3.5 rounded-xl text-sm text-white placeholder-white/25 outline-none transition-all focus:border-[#6D5DFC]"
-                                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }} />
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: 'rgba(255,255,255,0.45)' }}>Password</label>
-                                <div className="relative">
-                                    <input type={showPwd ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required
-                                        placeholder="••••••••" autoComplete={isLogin ? 'current-password' : 'new-password'}
-                                        className="w-full px-4 py-3.5 pr-12 rounded-xl text-sm text-white placeholder-white/25 outline-none transition-all"
-                                        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }} />
-                                    <button type="button" onClick={() => setShowPwd(v => !v)}
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors">
-                                        {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <button type="submit" disabled={loading}
-                                className="w-full flex items-center justify-center gap-2.5 py-4 rounded-xl font-black text-sm text-white transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 mt-2"
-                                style={{ background: '#6D5DFC', boxShadow: '0 10px 28px rgba(109,93,252,0.45)' }}>
-                                {loading
-                                    ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {isLogin ? 'Signing in…' : 'Creating account…'}</>
-                                    : <>{isLogin ? 'Sign In' : 'Create Account'} <ArrowRight size={15} /></>}
-                            </button>
-                        </form>
-
-                        {!isLogin && (
-                            <p className="text-center text-xs mt-6" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                                By creating an account you agree to our{' '}
-                                <a href="#" className="underline hover:text-white/50">Terms of Service</a> and{' '}
-                                <a href="#" className="underline hover:text-white/50">Privacy Policy</a>.
-                            </p>
-                        )}
-                    </motion.div>
+                    <span className="font-black text-white text-lg">ResumeAI</span>
                 </div>
+
+                <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="w-full max-w-sm">
+
+                    <h1 className="text-3xl font-black text-white mb-2">Welcome</h1>
+                    <p className="text-white/40 mb-10 text-sm leading-relaxed">
+                        Sign in to your account — or we'll create one automatically<br className="hidden sm:block" />
+                        if this is your first time.
+                    </p>
+
+                    {/* Error banner */}
+                    <AnimatePresence>
+                        {errorMsg && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                                className="flex items-center gap-2.5 mb-6 px-4 py-3 rounded-xl text-sm"
+                                style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#FCA5A5' }}>
+                                <AlertCircle size={15} className="shrink-0" />
+                                {errorMsg}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {/* ── THE button ── */}
+                    <button
+                        onClick={handleSignIn}
+                        onMouseEnter={() => setHovering(true)}
+                        onMouseLeave={() => setHovering(false)}
+                        className="flex items-center justify-center gap-3 w-full py-4 rounded-2xl font-bold text-sm transition-all"
+                        style={{
+                            background: hovering ? 'rgba(255,255,255,0.97)' : 'white',
+                            color: '#1E1B3A',
+                            boxShadow: hovering
+                                ? '0 12px 36px rgba(109,93,252,0.45), 0 0 0 1px rgba(255,255,255,0.1)'
+                                : '0 6px 24px rgba(0,0,0,0.35)',
+                            transform: hovering ? 'translateY(-1px) scale(1.01)' : 'none',
+                        }}>
+                        <GoogleIcon />
+                        Continue with Google
+                        <ArrowRight size={15} className="ml-auto" style={{ opacity: hovering ? 1 : 0.4, transition: 'opacity 0.2s' }} />
+                    </button>
+
+                    <p className="text-center text-xs mt-6" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                        By continuing you agree to our{' '}
+                        <a href="#" className="underline hover:text-white/40 transition-colors">Terms</a>
+                        {' '}and{' '}
+                        <a href="#" className="underline hover:text-white/40 transition-colors">Privacy Policy</a>.
+                    </p>
+
+                    {/* Future providers — hidden, easy to uncomment */}
+                    {/*
+                    <div className="mt-4 flex flex-col gap-3">
+                        <ProviderButton icon={...} label="Continue with Microsoft" href={`${API}/auth/microsoft?next=${next}`} />
+                        <ProviderButton icon={...} label="Continue with LinkedIn"  href={`${API}/auth/linkedin?next=${next}`}  />
+                    </div>
+                    */}
+                </motion.div>
             </div>
         </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={
+            <div className="h-screen flex items-center justify-center" style={{ background: '#07061A' }}>
+                <Sparkles size={22} className="animate-pulse" style={{ color: '#6D5DFC' }} />
+            </div>
+        }>
+            <LoginContent />
+        </Suspense>
     );
 }

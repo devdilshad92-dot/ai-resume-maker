@@ -8,9 +8,13 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True)
-    full_name = Column(String)
-    hashed_password = Column(String)
+    email = Column(String, unique=True, index=True, nullable=False)
+    full_name = Column(String, nullable=True)
+    hashed_password = Column(String, nullable=True)          # null for OAuth-only users
+    google_id = Column(String, unique=True, index=True, nullable=True)
+    profile_image = Column(String, nullable=True)
+    subscription_plan = Column(String, default="free", nullable=False, server_default="free")
+    is_anonymous = Column(Boolean, default=False, nullable=False, server_default="false")
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

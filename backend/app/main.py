@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import select
+from sqlalchemy import select, text
 
 from app.core.config import settings
 from app.core.db import engine, Base, SessionLocal
@@ -34,6 +34,21 @@ app.include_router(career.router,    prefix=f"{settings.API_V1_STR}/career",    
 async def startup():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+        # Safe column additions for existing DBs — ignored if column already exists
+        migrations = [
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id VARCHAR",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_image VARCHAR",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_plan VARCHAR NOT NULL DEFAULT 'free'",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN NOT NULL DEFAULT false",
+            "ALTER TABLE users ALTER COLUMN hashed_password DROP NOT NULL",
+            "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_google_id ON users (google_id)",
+        ]
+        for stmt in migrations:
+            try:
+                await conn.execute(text(stmt))
+            except Exception:
+                pass  # column / index already exists
 
     # Load AI config from DB and wire up the service
     async with SessionLocal() as db:
