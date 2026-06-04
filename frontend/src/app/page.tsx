@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
     Sparkles, ArrowRight, Wand2, Check, CornerDownLeft, LogOut,
-    Target, Upload, FileText, TrendingUp, Zap, Layers,
+    Target, Upload, FileText, TrendingUp, Zap, Layers, Rocket,
 } from 'lucide-react';
 import api from '@/api/client';
 import AuthGuard from '@/components/AuthGuard';
@@ -126,6 +126,8 @@ function CommandCenter() {
                                 <button onClick={() => router.push('/builder/interview')} className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-slate-50 hover:text-slate-700 transition-colors"><Sparkles size={12}/>AI Interview</button>
                                 <span className="text-slate-200">·</span>
                                 <button onClick={() => router.push('/builder')} className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-slate-50 hover:text-slate-700 transition-colors"><Upload size={12}/>Upload</button>
+                                <span className="text-slate-200">·</span>
+                                <button onClick={() => router.push(latest ? `/coach?id=${latest.id}` : '/builder/interview')} className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-slate-50 hover:text-slate-700 transition-colors"><Rocket size={12}/>Career Coach</button>
                             </div>
                             <button onClick={() => run()} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-95" style={{ background: 'var(--primary)' }}>
                                 Generate <CornerDownLeft size={14} />
@@ -218,6 +220,9 @@ function CommandCenter() {
                                                 </div>
                                                 <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-1"><Sparkles size={9} style={{ color: 'var(--primary)' }}/> Last AI improvement: {lastImp}</p>
                                             </div>
+                                            <button onClick={() => router.push(`/coach?id=${r.id}`)} className="flex items-center gap-1 text-xs font-bold shrink-0 px-3 py-1.5 rounded-lg transition-colors hover:bg-violet-50" style={{ color: 'var(--primary)' }} title="Career Intelligence">
+                                                <Rocket size={13} /> Coach
+                                            </button>
                                             <button onClick={() => router.push(`/templates?id=${r.id}`)} className="flex items-center gap-1 text-xs font-bold shrink-0 px-3 py-1.5 rounded-lg transition-colors hover:bg-violet-50" style={{ color: 'var(--primary)' }} title="Template Intelligence">
                                                 <Layers size={13} /> Style
                                             </button>

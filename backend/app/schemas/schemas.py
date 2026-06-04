@@ -188,6 +188,12 @@ class JobRoleResponse(JobRoleBase):
         from_attributes = True
 
 
+# Career Intelligence Schemas
+class CareerIntelligenceRequest(BaseModel):
+    target_role: Optional[str] = ""
+    job_description: Optional[str] = ""
+
+
 # AI Config Schemas
 class AIConfigUpdate(BaseModel):
     primaryProvider: str

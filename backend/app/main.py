@@ -6,6 +6,7 @@ from app.core.config import settings
 from app.core.db import engine, Base, SessionLocal
 from app.api import auth, resume, job_roles
 from app.api import admin
+from app.api import career
 from app.models.models import AISettings
 from app.services.ai_service import ai_service
 
@@ -26,6 +27,7 @@ app.include_router(auth.router,      prefix=f"{settings.API_V1_STR}/auth",      
 app.include_router(resume.router,    prefix=f"{settings.API_V1_STR}/resume",    tags=["resume"])
 app.include_router(job_roles.router, prefix=f"{settings.API_V1_STR}/job-roles", tags=["job-roles"])
 app.include_router(admin.router,     prefix=f"{settings.API_V1_STR}/admin",     tags=["admin"])
+app.include_router(career.router,    prefix=f"{settings.API_V1_STR}/career",    tags=["career"])
 
 
 @app.on_event("startup")
