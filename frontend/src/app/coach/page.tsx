@@ -92,7 +92,7 @@ function CareerIntelligencePlatform() {
     if (!resume || !scores) return (
         <div className="h-screen flex flex-col items-center justify-center gap-3" style={{ background: 'var(--bg)' }}>
             <p className="text-slate-500">{error || 'No resume selected.'}</p>
-            <button onClick={() => router.push('/')} className="text-sm font-bold" style={{ color: 'var(--primary)' }}>← Back to dashboard</button>
+            <button onClick={() => router.push('/dashboard')} className="text-sm font-bold" style={{ color: 'var(--primary)' }}>← Back to dashboard</button>
         </div>
     );
 
@@ -103,7 +103,7 @@ function CareerIntelligencePlatform() {
             {/* Top bar */}
             <div className="h-14 flex items-center px-6 gap-3 sticky top-0 z-20"
                 style={{ background: 'rgba(250,250,252,0.88)', backdropFilter: 'blur(14px)', borderBottom: '1px solid var(--border)' }}>
-                <button onClick={() => router.push('/')} className="flex items-center gap-1.5 text-slate-400 hover:text-slate-700 transition-colors text-sm">
+                <button onClick={() => router.push('/dashboard')} className="flex items-center gap-1.5 text-slate-400 hover:text-slate-700 transition-colors text-sm">
                     <ArrowLeft size={15} /> Back
                 </button>
                 <div className="flex-1 flex justify-center items-center gap-2">

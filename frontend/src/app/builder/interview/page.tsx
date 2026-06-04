@@ -112,7 +112,7 @@ function Interview() {
         <div className="h-screen flex flex-col" style={{ background: 'var(--bg)' }}>
             {/* Top bar */}
             <div className="h-14 flex items-center px-6 gap-3 shrink-0" style={{ background: 'rgba(250,250,252,0.8)', backdropFilter: 'blur(12px)' }}>
-                <button onClick={() => router.push('/')} className="flex items-center gap-1.5 text-slate-400 hover:text-slate-700 transition-colors text-sm">
+                <button onClick={() => router.push('/dashboard')} className="flex items-center gap-1.5 text-slate-400 hover:text-slate-700 transition-colors text-sm">
                     <ArrowLeft size={15} /> Back
                 </button>
                 <div className="flex-1 flex justify-center">

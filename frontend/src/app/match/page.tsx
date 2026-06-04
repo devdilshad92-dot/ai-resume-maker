@@ -97,7 +97,7 @@ function JobMatchStudio() {
     if (!resume) return (
         <div className="h-screen flex flex-col items-center justify-center gap-3" style={{ background: 'var(--bg)' }}>
             <p className="text-slate-500">{error || 'No resume selected.'}</p>
-            <button onClick={() => router.push('/')} className="text-sm font-bold" style={{ color: 'var(--primary)' }}>← Back to dashboard</button>
+            <button onClick={() => router.push('/dashboard')} className="text-sm font-bold" style={{ color: 'var(--primary)' }}>← Back to dashboard</button>
         </div>
     );
 
@@ -105,7 +105,7 @@ function JobMatchStudio() {
         <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
             {/* Top bar */}
             <div className="h-14 flex items-center px-6 gap-3 sticky top-0 z-20" style={{ background: 'rgba(250,250,252,0.8)', backdropFilter: 'blur(12px)' }}>
-                <button onClick={() => router.push('/')} className="flex items-center gap-1.5 text-slate-400 hover:text-slate-700 transition-colors text-sm"><ArrowLeft size={15} /> Back</button>
+                <button onClick={() => router.push('/dashboard')} className="flex items-center gap-1.5 text-slate-400 hover:text-slate-700 transition-colors text-sm"><ArrowLeft size={15} /> Back</button>
                 <div className="flex-1 flex justify-center items-center gap-2">
                     <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'var(--primary)' }}><Target size={13} className="text-white" /></div>
                     <span className="text-sm font-bold text-slate-800">Job Match Studio</span>

@@ -16,7 +16,7 @@ export const Navbar = () => {
             <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
                 <div
                     className="flex items-center gap-2 cursor-pointer"
-                    onClick={() => router.push('/')}
+                    onClick={() => router.push('/dashboard')}
                 >
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white">
                         <FileText size={20} className="stroke-[2.5]" />

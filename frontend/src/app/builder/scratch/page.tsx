@@ -265,7 +265,7 @@ function ResumeScratch(){
 function TopBar({router,setupData,saving,lastSaved,score,showPreview,setShowPreview,onImproveAll,improving,onCommand,onChat,onHealth,onStyle}:any){
     return(
         <div className="h-12 flex items-center px-4 gap-3 shrink-0 border-b" style={{background:'white',borderColor:'var(--border)'}}>
-            <button onClick={()=>router.push('/')} className="flex items-center gap-1.5 text-slate-400 hover:text-slate-700 transition-colors text-sm">
+            <button onClick={()=>router.push('/dashboard')} className="flex items-center gap-1.5 text-slate-400 hover:text-slate-700 transition-colors text-sm">
                 <ArrowLeft size={14}/>Back
             </button>
             <div className="w-px h-4 bg-slate-100"/>
