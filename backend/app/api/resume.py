@@ -18,7 +18,7 @@ from app.schemas.schemas import (
     ApplicationCreate, TemplateResponse, ResumeCreateScratch, ResumeUpdateSection,
     SectionAISuggestionRequest, SectionAISuggestionResponse, ResumeInterviewRequest,
     HealthImproveRequest, HealthImproveResponse, BulkApplyRequest, JobAnalyzeRequest,
-    StyleTransformRequest
+    StyleTransformRequest, CareerIntelligenceRequest
 )
 from app.services.pdf import extract_text
 from app.services.ai_service import ai_service
@@ -371,6 +371,38 @@ async def transform_style(
         "projects": pc.get("projects", []),
     }
     return {"before": before, "after": after}
+
+
+@router.post("/{resume_id}/career-intelligence")
+async def get_career_intelligence(
+    resume_id: int,
+    req: CareerIntelligenceRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Career Intelligence Platform: one call returns all 6 intelligence surfaces
+    (skill gaps, promotion path, salary intelligence, interview questions,
+    career roadmap, weekly/monthly/quarterly action plan).
+    """
+    resume = await _owned_resume(resume_id, db, current_user)
+    meta = resume.meta_data or {}
+    try:
+        return await ai_service.generate_career_intelligence(
+            parsed_content=resume.parsed_content or {},
+            job_role=meta.get("job_role", ""),
+            experience_level=meta.get("experience_level", "Mid"),
+            industry=meta.get("industry", ""),
+            target_role=req.target_role or "",
+            job_description=req.job_description or "",
+        )
+    except RetryError as e:
+        cause = str(e.last_attempt.exception()).lower()
+        if any(w in cause for w in ("quota", "exhausted", "rate limit", "billing")):
+            raise HTTPException(status_code=429, detail="AI quota exceeded. Please wait a moment and try again.")
+        raise HTTPException(status_code=503, detail="AI service unavailable. Please try again shortly.")
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"AI error: {str(e)[:120]}")
 
 
 @router.post("/ai-assistant", response_model=SectionAISuggestionResponse)
