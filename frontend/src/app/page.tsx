@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
     Sparkles, ArrowRight, Wand2, Check, CornerDownLeft, LogOut,
-    Target, Upload, FileText, TrendingUp, Zap,
+    Target, Upload, FileText, TrendingUp, Zap, Layers,
 } from 'lucide-react';
 import api from '@/api/client';
 import AuthGuard from '@/components/AuthGuard';
@@ -218,6 +218,9 @@ function CommandCenter() {
                                                 </div>
                                                 <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-1"><Sparkles size={9} style={{ color: 'var(--primary)' }}/> Last AI improvement: {lastImp}</p>
                                             </div>
+                                            <button onClick={() => router.push(`/templates?id=${r.id}`)} className="flex items-center gap-1 text-xs font-bold shrink-0 px-3 py-1.5 rounded-lg transition-colors hover:bg-violet-50" style={{ color: 'var(--primary)' }} title="Template Intelligence">
+                                                <Layers size={13} /> Style
+                                            </button>
                                             <button onClick={() => router.push(`/match?id=${r.id}`)} className="flex items-center gap-1 text-xs font-bold shrink-0 px-3 py-1.5 rounded-lg transition-colors hover:bg-violet-50" style={{ color: 'var(--primary)' }} title="Job Match Studio">
                                                 <Target size={13} /> Match
                                             </button>

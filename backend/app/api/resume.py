@@ -17,7 +17,8 @@ from app.schemas.schemas import (
     ResumeResponse, JobDescriptionResponse, ApplicationResponse, JobDescriptionCreate,
     ApplicationCreate, TemplateResponse, ResumeCreateScratch, ResumeUpdateSection,
     SectionAISuggestionRequest, SectionAISuggestionResponse, ResumeInterviewRequest,
-    HealthImproveRequest, HealthImproveResponse, BulkApplyRequest, JobAnalyzeRequest
+    HealthImproveRequest, HealthImproveResponse, BulkApplyRequest, JobAnalyzeRequest,
+    StyleTransformRequest
 )
 from app.services.pdf import extract_text
 from app.services.ai_service import ai_service
@@ -323,11 +324,53 @@ async def bulk_apply(
         if key in req.content and req.content[key] is not None:
             new_content[key] = req.content[key]
     resume.parsed_content = new_content
+    if req.template_id:
+        resume.template_id = req.template_id
     resume.version += 1
     db.add(resume)
     await db.commit()
     await db.refresh(resume)
     return resume
+
+
+@router.post("/{resume_id}/transform-style", response_model=HealthImproveResponse)
+async def transform_style(
+    resume_id: int,
+    req: StyleTransformRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Template Intelligence: restyle the resume to a target template (before/after,
+    no save). Facts preserved — only tone/emphasis change. Apply via bulk-apply
+    with template_id to also switch the layout.
+    """
+    resume = await _owned_resume(resume_id, db, current_user)
+    meta = resume.meta_data or {}
+    try:
+        after = await ai_service.transform_resume_style(
+            parsed_content=resume.parsed_content or {},
+            style_name=req.style_name,
+            style_directive=req.style_directive,
+            job_role=meta.get("job_role", ""),
+            experience_level=meta.get("experience_level", "Mid"),
+        )
+    except RetryError as e:
+        cause = str(e.last_attempt.exception()).lower()
+        if any(w in cause for w in ("quota", "exhausted", "rate limit", "billing")):
+            raise HTTPException(status_code=429, detail="AI quota exceeded. Please wait a moment and try again.")
+        raise HTTPException(status_code=503, detail="AI service unavailable. Please try again shortly.")
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"AI error: {str(e)[:120]}")
+
+    pc = resume.parsed_content or {}
+    before = {
+        "summary": pc.get("summary", ""),
+        "skills": pc.get("skills", []),
+        "work_experience": pc.get("work_experience", []),
+        "projects": pc.get("projects", []),
+    }
+    return {"before": before, "after": after}
 
 
 @router.post("/ai-assistant", response_model=SectionAISuggestionResponse)

@@ -8,7 +8,7 @@ import {
     FileText, Layout, ArrowLeft, RefreshCw, Trash2, ChevronRight,
     Wand2, MessageSquare, Target, BarChart3, Eye, EyeOff,
     Type, Hash, Clock, Copy, TrendingUp, Zap, Search,
-    MoreHorizontal, Command, CornerDownLeft,
+    MoreHorizontal, Command, CornerDownLeft, Layers,
 } from 'lucide-react';
 import api from '@/api/client';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -191,7 +191,7 @@ function ResumeScratch(){
     return(
         <div className="h-screen flex flex-col overflow-hidden" style={{background:'var(--bg)'}}>
             {/* Minimal top bar */}
-            <TopBar router={router} setupData={setupData} saving={saving} lastSaved={lastSaved} score={score} showPreview={showPreview} setShowPreview={setShowPreview} onImproveAll={improveAll} improving={improving} onCommand={()=>setCommandOpen(true)} onChat={()=>setChatOpen(p=>!p)} onHealth={resume?()=>router.push(`/health?id=${resume.id}`):undefined} />
+            <TopBar router={router} setupData={setupData} saving={saving} lastSaved={lastSaved} score={score} showPreview={showPreview} setShowPreview={setShowPreview} onImproveAll={improveAll} improving={improving} onCommand={()=>setCommandOpen(true)} onChat={()=>setChatOpen(p=>!p)} onHealth={resume?()=>router.push(`/health?id=${resume.id}`):undefined} onStyle={resume?()=>router.push(`/templates?id=${resume.id}`):undefined} />
 
             {/* Job targeting banner */}
             <JobTargetBanner jobOpen={jobOpen} setJobOpen={setJobOpen} jobDesc={jobDesc} setJobDesc={setJobDesc} jobMatch={jobMatch} analyzingJob={analyzingJob} analyzeJob={analyzeJob} onOpenStudio={(jd:string)=>{ try{sessionStorage.setItem('match_jd',jd);}catch{}; if(resume) router.push(`/match?id=${resume.id}`); }} />
@@ -262,7 +262,7 @@ function ResumeScratch(){
 }
 
 // ─── Top Bar ──────────────────────────────────────────────────────────────────
-function TopBar({router,setupData,saving,lastSaved,score,showPreview,setShowPreview,onImproveAll,improving,onCommand,onChat,onHealth}:any){
+function TopBar({router,setupData,saving,lastSaved,score,showPreview,setShowPreview,onImproveAll,improving,onCommand,onChat,onHealth,onStyle}:any){
     return(
         <div className="h-12 flex items-center px-4 gap-3 shrink-0 border-b" style={{background:'white',borderColor:'var(--border)'}}>
             <button onClick={()=>router.push('/')} className="flex items-center gap-1.5 text-slate-400 hover:text-slate-700 transition-colors text-sm">
@@ -295,6 +295,11 @@ function TopBar({router,setupData,saving,lastSaved,score,showPreview,setShowPrev
             {onHealth && (
                 <button onClick={onHealth} className="btn-ghost flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl">
                     <Zap size={13}/>Health
+                </button>
+            )}
+            {onStyle && (
+                <button onClick={onStyle} className="btn-ghost flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl">
+                    <Layers size={13}/>Style
                 </button>
             )}
             <button onClick={onImproveAll} disabled={improving} className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50" style={{background:'var(--primary)'}}>

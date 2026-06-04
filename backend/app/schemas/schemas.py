@@ -106,6 +106,13 @@ class HealthImproveResponse(BaseModel):
 
 class BulkApplyRequest(BaseModel):
     content: Dict[str, Any]  # partial parsed_content to merge & save
+    template_id: Optional[str] = None  # optionally switch template at the same time
+
+
+class StyleTransformRequest(BaseModel):
+    style_name: str
+    style_directive: str
+    template_id: Optional[str] = None
 
 
 class JobAnalyzeRequest(BaseModel):
